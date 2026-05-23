@@ -22,6 +22,11 @@ const sanitize = (v: string | undefined): string =>
 const USERNAME = sanitize(process.env.GITHUB_USERNAME);
 const TOKEN = sanitize(process.env.GITHUB_TOKEN);
 
+// ⚠️ 임시 디버그 로그 (빌드 로그에서 환경변수 상태 확인용 — 토큰은 안 찍음)
+console.log('[debug] USERNAME =', JSON.stringify(USERNAME), 'len=', USERNAME.length);
+console.log('[debug] TOKEN len=', TOKEN.length, 'starts=', TOKEN.substring(0, 4));
+console.log('[debug] TARGET_REPOS raw len=', (process.env.TARGET_REPOS ?? '').length);
+
 // GitHub API 호출 공통 함수 (인증 헤더를 자동으로 붙여줌)
 async function gh(path: string) {
   const res = await fetch(`${GITHUB_API}${path}`, {
@@ -56,11 +61,14 @@ async function getTargetRepoNames(): Promise<string[]> {
 
 // repo 하나의 STATUS.md 내용을 가져온다. 없으면 null.
 async function getStatusFile(repo: string): Promise<string | null> {
+  const url = `/repos/${USERNAME}/${repo}/contents/STATUS.md`;
   try {
-    const data = await gh(`/repos/${USERNAME}/${repo}/contents/STATUS.md`);
+    const data = await gh(url);
+    console.log('[debug] STATUS.md FOUND:', repo); // 임시
     // GitHub은 파일 내용을 base64로 인코딩해서 준다 → 원래 글자로 디코딩
     return Buffer.from(data.content, "base64").toString("utf-8");
-  } catch {
+  } catch (e: any) {
+    console.log('[debug] STATUS.md missing for', repo, '— err:', e?.message); // 임시
     return null; // STATUS.md가 없는 repo는 건너뜀
   }
 }
