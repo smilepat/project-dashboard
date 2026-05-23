@@ -8,16 +8,12 @@
 
 const GITHUB_API = "https://api.github.com";
 
-// 환경변수 정리: BOM/zero-width 문자 + 앞뒤 공백/CRLF 제거.
-// PowerShell stdin pipe가 값에 BOM(U+FEFF)이나 CRLF를 끼워넣는 사례 방지.
-// RegExp 생성자 + 명시적 \\u escape로 작성 → 파일 저장/전송 단계에서
-// 보이지 않는 문자가 사라지거나 변형되는 사고를 차단.
-const INVISIBLE_RE = new RegExp(
-  '[\\uFEFF\\u200B\\u200C\\u200D\\u00A0]',
-  'g'
-);
+// 환경변수 정리: ASCII printable + 쉼표만 남기고 모두 제거.
+// 토큰/사용자명/repo이름은 모두 ASCII 범위라 이게 안전.
+// PowerShell stdin pipe가 끼워넣는 BOM/CRLF/zero-width 등 모든 invisible 문자 차단.
+const PRINTABLE_RE = new RegExp('[^\\x21-\\x7E]', 'g');
 const sanitize = (v: string | undefined): string =>
-  (v ?? '').replace(INVISIBLE_RE, '').trim();
+  (v ?? '').replace(PRINTABLE_RE, '').trim();
 
 const USERNAME = sanitize(process.env.GITHUB_USERNAME);
 const TOKEN = sanitize(process.env.GITHUB_TOKEN);
