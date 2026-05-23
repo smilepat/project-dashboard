@@ -7,8 +7,14 @@
 // ─────────────────────────────────────────────────────────────
 
 const GITHUB_API = "https://api.github.com";
-const USERNAME = process.env.GITHUB_USERNAME!;
-const TOKEN = process.env.GITHUB_TOKEN!;
+
+// 환경변수 정리: 시작 BOM(﻿) 제거 + 앞뒤 공백/CRLF 제거.
+// 일부 CLI(특히 PowerShell stdin pipe)가 값에 BOM/CRLF를 끼워넣는 사례 방지.
+const sanitize = (v: string | undefined) =>
+  (v ?? '').replace(/^﻿/, '').trim();
+
+const USERNAME = sanitize(process.env.GITHUB_USERNAME);
+const TOKEN = sanitize(process.env.GITHUB_TOKEN);
 
 // GitHub API 호출 공통 함수 (인증 헤더를 자동으로 붙여줌)
 async function gh(path: string) {
@@ -30,7 +36,7 @@ async function gh(path: string) {
 // 대상 repo 이름 목록을 정한다.
 // .env에 TARGET_REPOS가 있으면 그것만, 없으면 내 모든 repo를 가져온다.
 async function getTargetRepoNames(): Promise<string[]> {
-  const fromEnv = process.env.TARGET_REPOS?.trim();
+  const fromEnv = sanitize(process.env.TARGET_REPOS);
   if (fromEnv) {
     return fromEnv.split(",").map((s) => s.trim()).filter(Boolean);
   }
