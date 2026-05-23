@@ -1,0 +1,11 @@
+node_modules
+.next
+.env.local
+.DS_Store
+*.log
+
+# 개인 Claude Code 설정 (사용자별 환경)
+.claude/
+
+# TypeScript 증분 빌드 캐시 (PC마다 달라짐)
+*.tsbuildinfo
