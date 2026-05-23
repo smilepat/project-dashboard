@@ -9,3 +9,8 @@ node_modules
 
 # TypeScript 증분 빌드 캐시 (PC마다 달라짐)
 *.tsbuildinfo
+
+# Vercel CLI가 만드는 프로젝트 연결 메타데이터 (PC마다 다름)
+.vercel/
+
+.vercel
