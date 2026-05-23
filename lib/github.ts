@@ -8,10 +8,16 @@
 
 const GITHUB_API = "https://api.github.com";
 
-// 환경변수 정리: 시작 BOM(﻿) 제거 + 앞뒤 공백/CRLF 제거.
-// 일부 CLI(특히 PowerShell stdin pipe)가 값에 BOM/CRLF를 끼워넣는 사례 방지.
-const sanitize = (v: string | undefined) =>
-  (v ?? '').replace(/^﻿/, '').trim();
+// 환경변수 정리: BOM/zero-width 문자 + 앞뒤 공백/CRLF 제거.
+// PowerShell stdin pipe가 값에 BOM(U+FEFF)이나 CRLF를 끼워넣는 사례 방지.
+// RegExp 생성자 + 명시적 \\u escape로 작성 → 파일 저장/전송 단계에서
+// 보이지 않는 문자가 사라지거나 변형되는 사고를 차단.
+const INVISIBLE_RE = new RegExp(
+  '[\\uFEFF\\u200B\\u200C\\u200D\\u00A0]',
+  'g'
+);
+const sanitize = (v: string | undefined): string =>
+  (v ?? '').replace(INVISIBLE_RE, '').trim();
 
 const USERNAME = sanitize(process.env.GITHUB_USERNAME);
 const TOKEN = sanitize(process.env.GITHUB_TOKEN);
@@ -38,7 +44,10 @@ async function gh(path: string) {
 async function getTargetRepoNames(): Promise<string[]> {
   const fromEnv = sanitize(process.env.TARGET_REPOS);
   if (fromEnv) {
-    return fromEnv.split(",").map((s) => s.trim()).filter(Boolean);
+    return fromEnv
+      .split(",")
+      .map((s) => sanitize(s)) // 각 항목 개별 정리 (혹시 모를 잔여 BOM)
+      .filter(Boolean);
   }
   // 내 repo 전체(최대 100개)를 최근 수정순으로 가져옴
   const repos = await gh(`/users/${USERNAME}/repos?per_page=100&sort=updated`);
