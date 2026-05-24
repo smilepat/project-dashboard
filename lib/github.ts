@@ -8,20 +8,11 @@
 
 const GITHUB_API = "https://api.github.com";
 
-// 환경변수 정리: ASCII printable + 쉼표만 남기고 모두 제거.
-// 토큰/사용자명/repo이름은 모두 ASCII 범위라 이게 안전.
-// PowerShell stdin pipe가 끼워넣는 BOM/CRLF/zero-width 등 모든 invisible 문자 차단.
-const PRINTABLE_RE = new RegExp('[^\\x21-\\x7E]', 'g');
-const sanitize = (v: string | undefined): string =>
-  (v ?? '').replace(PRINTABLE_RE, '').trim();
+// 환경변수에 붙는 앞뒤 공백/줄바꿈만 제거.
+const sanitize = (v: string | undefined): string => (v ?? '').trim();
 
 const USERNAME = sanitize(process.env.GITHUB_USERNAME);
 const TOKEN = sanitize(process.env.GITHUB_TOKEN);
-
-// ⚠️ 임시 디버그 로그 (빌드 로그에서 환경변수 상태 확인용 — 토큰은 안 찍음)
-console.log('[debug] USERNAME =', JSON.stringify(USERNAME), 'len=', USERNAME.length);
-console.log('[debug] TOKEN len=', TOKEN.length, 'starts=', TOKEN.substring(0, 4));
-console.log('[debug] TARGET_REPOS raw len=', (process.env.TARGET_REPOS ?? '').length);
 
 // GitHub API 호출 공통 함수 (인증 헤더를 자동으로 붙여줌)
 async function gh(path: string) {
@@ -41,30 +32,28 @@ async function gh(path: string) {
 }
 
 // 대상 repo 이름 목록을 정한다.
-// .env에 TARGET_REPOS가 있으면 그것만, 없으면 내 모든 repo를 가져온다.
+// .env에 TARGET_REPOS가 있으면 그것만, 없으면 토큰으로 볼 수 있는 본인 소유 repo 전체.
 async function getTargetRepoNames(): Promise<string[]> {
   const fromEnv = sanitize(process.env.TARGET_REPOS);
   if (fromEnv) {
     return fromEnv
       .split(",")
-      .map((s) => sanitize(s)) // 각 항목 개별 정리 (혹시 모를 잔여 BOM)
+      .map((s) => sanitize(s))
       .filter(Boolean);
   }
-  // 내 repo 전체(최대 100개)를 최근 수정순으로 가져옴
-  const repos = await gh(`/users/${USERNAME}/repos?per_page=100&sort=updated`);
+  // 인증된 본인 컨텍스트로 호출 → private repo까지 자동 포함.
+  // affiliation=owner: 본인 소유만 (collaborator로 참여한 타 owner repo는 제외)
+  const repos = await gh(`/user/repos?per_page=100&sort=updated&affiliation=owner`);
   return repos.map((r: any) => r.name);
 }
 
 // repo 하나의 STATUS.md 내용을 가져온다. 없으면 null.
 async function getStatusFile(repo: string): Promise<string | null> {
-  const url = `/repos/${USERNAME}/${repo}/contents/STATUS.md`;
   try {
-    const data = await gh(url);
-    console.log('[debug] STATUS.md FOUND:', repo); // 임시
+    const data = await gh(`/repos/${USERNAME}/${repo}/contents/STATUS.md`);
     // GitHub은 파일 내용을 base64로 인코딩해서 준다 → 원래 글자로 디코딩
     return Buffer.from(data.content, "base64").toString("utf-8");
-  } catch (e: any) {
-    console.log('[debug] STATUS.md missing for', repo, '— err:', e?.message); // 임시
+  } catch {
     return null; // STATUS.md가 없는 repo는 건너뜀
   }
 }
