@@ -15,7 +15,8 @@ export type Health = "green" | "yellow" | "red";
 
 // 화면 카드 한 장에 필요한 모든 정보
 export type Project = {
-  name: string;
+  name: string;         // 표시명 (STATUS.md의 project: 필드)
+  repo: string;         // 실제 GitHub repo 이름 (URL 라우팅용)
   status: string;       // active | paused | done
   progress: number;     // 0~100
   updated: string;      // YYYY-MM-DD
@@ -98,6 +99,7 @@ export function parseProject(raw: RawProject): Project {
 
   return {
     name: String(data.project ?? raw.repo),
+    repo: raw.repo,
     status,
     progress,
     updated: String(data.updated ?? "?"),

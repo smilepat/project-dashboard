@@ -76,6 +76,22 @@ export type RawProject = {
   url: string;                // GitHub repo 주소
 };
 
+// preview 페이지(/p/[repo])에서 쓰는 단일 repo 조회 함수.
+// repo 하나의 STATUS.md + 마지막 커밋 + GitHub URL을 한 번에 돌려준다.
+export async function fetchProjectStatus(repo: string): Promise<RawProject> {
+  const cleanRepo = sanitize(repo);
+  const [statusRaw, lastCommit] = await Promise.all([
+    getStatusFile(cleanRepo),
+    getLastCommitDate(cleanRepo),
+  ]);
+  return {
+    repo: cleanRepo,
+    statusRaw,
+    lastCommit,
+    url: `https://github.com/${USERNAME}/${cleanRepo}`,
+  };
+}
+
 // ── 메인 함수 ──
 // 모든 대상 repo의 raw 데이터를 한꺼번에 모아서 돌려준다.
 export async function fetchAllProjects(): Promise<RawProject[]> {

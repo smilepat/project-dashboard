@@ -6,9 +6,11 @@
 // "use client" 없이 서버 컴포넌트로 동작 → 토큰이 브라우저에 노출 안 됨(안전).
 // ─────────────────────────────────────────────────────────────
 
+import Link from "next/link";
 import { fetchAllProjects } from "@/lib/github";
 import { parseAll, Project, Health } from "@/lib/parse";
 import HelpDialog from "./HelpDialog";
+import RefreshButton from "./RefreshButton";
 
 // 1시간(3600초)마다 페이지를 자동으로 새로 굽는다 (ISR)
 export const revalidate = 3600;
@@ -39,68 +41,107 @@ function agoText(days: number | null): string {
 }
 
 // ── 카드 한 장 ──
+// 큰 영역(제목·진행률·메타) = GitHub로 이동 (a 태그)
+// 카드 하단 "본문 보기" 작은 링크 = 대시보드 안 /p/[repo] preview 페이지로
+// 둘은 분리 필요: HTML 규격상 <a> 안에 <a>를 중첩할 수 없음
 function Card({ p }: { p: Project }) {
   const color = HEALTH_COLOR[p.health];
   return (
-    <a
-      href={p.url}
-      target="_blank"
+    <div
       style={{
-        display: "block",
-        textDecoration: "none",
-        color: "inherit",
         background: "#ffffff",
         border: "1px solid #e6e3da",
         borderLeft: `4px solid ${color}`,
         borderRadius: 12,
         padding: "20px 22px",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
-      {/* 윗줄: 프로젝트명 + 신호등 배지 */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2 style={{ fontSize: 18, fontWeight: 600, margin: 0 }}>{p.name}</h2>
-        <span
+      {/* 큰 영역 — 클릭 시 GitHub repo 새 탭으로 */}
+      <a
+        href={p.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          textDecoration: "none",
+          color: "inherit",
+          display: "block",
+          flex: 1,
+        }}
+      >
+        {/* 윗줄: 프로젝트명 + 신호등 배지 */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 600, margin: 0 }}>{p.name}</h2>
+          <span
+            style={{
+              fontSize: 12, fontWeight: 600, color,
+              background: `${color}1a`, padding: "3px 10px", borderRadius: 999,
+            }}
+          >
+            {HEALTH_LABEL[p.health]}
+          </span>
+        </div>
+
+        {/* 한 줄 상태 */}
+        <p style={{ fontSize: 14, color: "#73726c", margin: "8px 0 16px", lineHeight: 1.5 }}>
+          {p.headline || "—"}
+        </p>
+
+        {/* 진행률 막대 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+          <div style={{ flex: 1, height: 8, background: "#f0eee7", borderRadius: 999, overflow: "hidden" }}>
+            <div style={{ width: `${p.progress}%`, height: "100%", background: color }} />
+          </div>
+          <span style={{ fontSize: 13, fontWeight: 600, minWidth: 38, textAlign: "right" }}>
+            {p.progress}%
+          </span>
+        </div>
+
+        {/* 다음 할 일 (첫 항목만) */}
+        {p.nextActions[0] && (
+          <div style={{ fontSize: 13, marginBottom: 12 }}>
+            <span style={{ color: "#a8a69d" }}>다음 → </span>
+            <span style={{ color: "#3d3d3a" }}>{p.nextActions[0]}</span>
+          </div>
+        )}
+
+        {/* 아랫줄: 메타 정보 */}
+        <div style={{ display: "flex", gap: 14, fontSize: 12, color: "#a8a69d" }}>
+          <span>{STATUS_LABEL[p.status] ?? p.status}</span>
+          <span>·</span>
+          <span>{agoText(p.daysSinceCommit)}</span>
+          <span>·</span>
+          <span>{p.pc}</span>
+        </div>
+      </a>
+
+      {/* 카드 하단 — "본문 보기" 별도 링크 (대시보드 내 preview 페이지) */}
+      <div
+        style={{
+          marginTop: 14,
+          paddingTop: 10,
+          borderTop: "1px solid #f0eee7",
+          display: "flex",
+          justifyContent: "flex-end",
+        }}
+      >
+        <Link
+          href={`/p/${encodeURIComponent(p.repo)}`}
           style={{
-            fontSize: 12, fontWeight: 600, color,
-            background: `${color}1a`, padding: "3px 10px", borderRadius: 999,
+            fontSize: 12,
+            fontWeight: 600,
+            color: "#73726c",
+            textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
           }}
         >
-          {HEALTH_LABEL[p.health]}
-        </span>
+          📄 본문 보기
+        </Link>
       </div>
-
-      {/* 한 줄 상태 */}
-      <p style={{ fontSize: 14, color: "#73726c", margin: "8px 0 16px", lineHeight: 1.5 }}>
-        {p.headline || "—"}
-      </p>
-
-      {/* 진행률 막대 */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-        <div style={{ flex: 1, height: 8, background: "#f0eee7", borderRadius: 999, overflow: "hidden" }}>
-          <div style={{ width: `${p.progress}%`, height: "100%", background: color }} />
-        </div>
-        <span style={{ fontSize: 13, fontWeight: 600, minWidth: 38, textAlign: "right" }}>
-          {p.progress}%
-        </span>
-      </div>
-
-      {/* 다음 할 일 (첫 항목만) */}
-      {p.nextActions[0] && (
-        <div style={{ fontSize: 13, marginBottom: 12 }}>
-          <span style={{ color: "#a8a69d" }}>다음 → </span>
-          <span style={{ color: "#3d3d3a" }}>{p.nextActions[0]}</span>
-        </div>
-      )}
-
-      {/* 아랫줄: 메타 정보 */}
-      <div style={{ display: "flex", gap: 14, fontSize: 12, color: "#a8a69d" }}>
-        <span>{STATUS_LABEL[p.status] ?? p.status}</span>
-        <span>·</span>
-        <span>{agoText(p.daysSinceCommit)}</span>
-        <span>·</span>
-        <span>{p.pc}</span>
-      </div>
-    </a>
+    </div>
   );
 }
 
@@ -133,8 +174,11 @@ export default async function Page() {
             진행 중인 프로젝트 {projects.length}개 · 방치된 순으로 정렬
           </p>
         </div>
-        {/* 도움말 버튼 — 누르면 사용 방법 모달이 뜸 */}
-        <HelpDialog />
+        {/* 헤더 우측 액션 — 새로고침 + 도움말 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <RefreshButton />
+          <HelpDialog />
+        </div>
       </header>
 
       {error && (
