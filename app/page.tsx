@@ -8,6 +8,7 @@
 
 import { fetchAllProjects } from "@/lib/github";
 import { parseAll, Project, Health } from "@/lib/parse";
+import HelpDialog from "./HelpDialog";
 
 // 1시간(3600초)마다 페이지를 자동으로 새로 굽는다 (ISR)
 export const revalidate = 3600;
@@ -116,11 +117,24 @@ export default async function Page() {
 
   return (
     <main style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px" }}>
-      <header style={{ marginBottom: 32 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>프로젝트 대시보드</h1>
-        <p style={{ color: "#73726c", marginTop: 6, fontSize: 14 }}>
-          진행 중인 프로젝트 {projects.length}개 · 방치된 순으로 정렬
-        </p>
+      <header
+        style={{
+          marginBottom: 32,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 16,
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>프로젝트 대시보드</h1>
+          <p style={{ color: "#73726c", marginTop: 6, fontSize: 14 }}>
+            진행 중인 프로젝트 {projects.length}개 · 방치된 순으로 정렬
+          </p>
+        </div>
+        {/* 도움말 버튼 — 누르면 사용 방법 모달이 뜸 */}
+        <HelpDialog />
       </header>
 
       {error && (
