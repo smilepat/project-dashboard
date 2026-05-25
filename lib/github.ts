@@ -43,8 +43,19 @@ async function getTargetRepoNames(): Promise<string[]> {
   }
   // 인증된 본인 컨텍스트로 호출 → private repo까지 자동 포함.
   // affiliation=owner: 본인 소유만 (collaborator로 참여한 타 owner repo는 제외)
-  const repos = await gh(`/user/repos?per_page=100&sort=updated&affiliation=owner`);
-  return repos.map((r: any) => r.name);
+  // 페이지네이션: per_page=100 한 페이지로는 100개 초과 owner는 누락 → 모든 페이지 순회.
+  const names: string[] = [];
+  let page = 1;
+  while (true) {
+    const repos = await gh(
+      `/user/repos?per_page=100&sort=updated&affiliation=owner&page=${page}`
+    );
+    if (!Array.isArray(repos) || repos.length === 0) break;
+    names.push(...repos.map((r: any) => r.name));
+    if (repos.length < 100) break; // 마지막 페이지면 종료
+    page++;
+  }
+  return names;
 }
 
 // repo 하나의 STATUS.md 내용을 가져온다. 없으면 null.
