@@ -3,6 +3,8 @@
 여러 PC에서 진행하는 여러 프로젝트의 진행 상황을, 각 프로젝트의 `STATUS.md`를
 모아 웹 대시보드로 보여줍니다.
 
+**현재 운영 중인 배포**: <https://project-dashboard-drab.vercel.app> (PWA 설치 가능)
+
 ---
 
 ## 🟢 Phase 0 — 각 프로젝트에 STATUS.md 넣기 (먼저!)
@@ -10,8 +12,9 @@
 대시보드를 만들기 전에, **각 프로젝트 폴더 루트**에 `STATUS.md`를 둡니다.
 
 1. `templates/STATUS.template.md`를 복사 → 각 프로젝트 루트에 `STATUS.md`로 저장
-2. 내용 채우기 (사용자님 예시는 `templates/예시_*.md` 참고)
+2. 내용 채우기 (사용자님 예시는 이 repo의 `STATUS.md` 참고)
 3. 커밋 & 푸시:
+
    ```bash
    git add STATUS.md
    git commit -m "add STATUS.md"
@@ -26,33 +29,44 @@
 ## 🔧 Phase 1~2 — 대시보드 로컬 실행
 
 ### 1. 라이브러리 설치
+
 ```bash
 npm install
 ```
 
 ### 2. GitHub 토큰 발급
-- https://github.com/settings/tokens?type=beta 접속
+
+- <https://github.com/settings/tokens?type=beta> 접속
 - "Generate new token" → 이름 아무거나
-- Repository access: 대시보드에 띄울 repo들 선택
+- Repository access: 대시보드에 띄울 repo들 선택 (또는 "All repositories"로 두면 신규 repo 자동 포함)
 - Permissions → Repository → **Contents: Read-only** 만 켜기
 - 생성된 토큰(`github_pat_...`) 복사
 
+> ⚠️ 토큰을 복사할 때 prefix(`github_pat_`)가 **두 번** 들어가지 않도록 주의.
+> 과거에 `github_pat_github_pat_...` 사고가 있었고, 그 결과 401이 떨어졌습니다.
+
 ### 3. 환경변수 설정
+
 `.env.local.example`을 복사해 `.env.local`을 만들고 값 채우기:
+
 ```bash
 cp .env.local.example .env.local
 ```
-```
+
+```text
 GITHUB_USERNAME=본인_깃허브_아이디
 GITHUB_TOKEN=복사한_토큰
 TARGET_REPOS=repo-a,repo-b,repo-c,repo-d
 ```
-> `TARGET_REPOS`를 비우면 내 모든 repo를 자동으로 훑습니다.
+
+> `TARGET_REPOS`를 비우면 토큰으로 볼 수 있는 본인 소유 repo(private 포함)를 자동으로 훑습니다.
 
 ### 4. 실행
+
 ```bash
 npm run dev
 ```
+
 브라우저에서 `http://localhost:3000` 접속 → 카드들이 보이면 성공!
 
 ---
@@ -60,17 +74,32 @@ npm run dev
 ## 🚀 Phase 3 — Vercel 배포 (어디서든 접속)
 
 1. 이 폴더를 GitHub repo로 push (`project-dashboard`)
-2. https://vercel.com → "Add New Project" → 그 repo 선택
-3. **Environment Variables**에 `.env.local`의 3개 값 그대로 등록
+2. <https://vercel.com> → "Add New Project" → 그 repo 선택
+3. **Environment Variables**에 `.env.local`의 값들을 그대로 등록
    (`GITHUB_USERNAME`, `GITHUB_TOKEN`, `TARGET_REPOS`)
+   - ⚠️ 처음부터 **All Environments** 단일 항목으로 등록할 것. 환경별 분산 등록은 사고가 잘 남.
 4. Deploy 클릭 → `프로젝트이름.vercel.app` 주소 발급
 5. 폰·태블릿·다른 PC에서 접속 테스트 → 즐겨찾기 등록
 
-> 1시간마다 자동 새로고침(ISR)됩니다. 즉시 갱신하려면 Vercel에서 재배포.
+> 1시간마다 자동 새로고침(ISR)됩니다. 즉시 갱신하려면 **헤더 우측 "🔄 새로고침" 버튼**을 누르세요.
+> (서버 액션으로 ISR 캐시를 즉시 무효화 → Vercel 재배포 없이도 카드가 갱신됩니다.)
 
 ---
 
-## 🔁 Phase 4 — Claude Code 세션 연동
+## 📲 Phase 4 — PWA 설치 (앱처럼 쓰기)
+
+배포된 사이트를 폰·PC에 앱처럼 설치할 수 있습니다.
+
+- **PC Chrome/Edge**: 주소창 우측의 "설치" 아이콘 클릭
+- **Android Chrome**: 메뉴 → "홈 화면에 추가"
+- **iOS Safari**: 공유 → "홈 화면에 추가"
+
+설치하면 풀스크린 앱처럼 동작하고, 정적 자산은 캐시되어 빠르게 열립니다.
+(단, GitHub API 호출은 캐시 제외 — 항상 최신 데이터를 가져옴.)
+
+---
+
+## 🔁 Phase 5 — Claude Code 세션 연동
 
 각 프로젝트의 `CLAUDE.md`에 아래 블록을 추가하세요.
 그러면 Claude Code가 매 세션 STATUS.md를 자동으로 챙깁니다.
@@ -89,39 +118,77 @@ npm run dev
 ### 매일 쓰는 두 마디
 
 **작업 시작 (먼저 `git pull` 하고):**
-```
+
+```text
 STATUS.md 읽고 현재 상황 요약해줘. "다음에 할 일" 1번부터 이어서 하자.
 ```
 
 **작업 종료:**
-```
+
+```text
 오늘 한 작업 기준으로 STATUS.md 업데이트하고 git push 명령어 알려줘.
 ```
 
 ---
 
+## 💡 알아두면 좋은 기능들
+
+### 헤더 우측 두 버튼
+
+- **🔄 새로고침**: 1시간 ISR 캐시를 즉시 무효화하고 GitHub에서 최신 데이터 재수집
+- **❓ 도움말**: STATUS.md 작성 안내·신호등 의미 등을 모달로 표시
+
+### 카드별 본문 보기 (`/p/<repo-name>`)
+
+각 카드 하단의 **"📄 본문 보기"** 링크를 누르면, GitHub에 가지 않고도
+대시보드 안에서 해당 STATUS.md 본문(체크리스트·다음 할 일·결정 대기 등)을
+마크다운으로 바로 볼 수 있습니다.
+
+### 신호등 색 의미
+
+- 🟢 **활발**: 마지막 커밋 3일 이내 / `status: done`
+- 🟡 **주의**: 4~7일 / `status: paused` / 커밋 기록 없음
+- 🔴 **방치**: 7일 초과 — push 하면 색이 살아납니다
+
+---
+
 ## 📁 폴더 구조
-```
+
+```text
 project-dashboard/
 ├─ app/
-│  ├─ page.tsx       # 대시보드 화면 (카드 그리드)
-│  ├─ layout.tsx     # 페이지 골격
-│  └─ globals.css    # 기본 스타일
+│  ├─ page.tsx           # 대시보드 메인 (서버 컴포넌트, ISR 1시간)
+│  ├─ layout.tsx         # PWA 메타 + service worker 등록
+│  ├─ globals.css        # 기본 스타일
+│  ├─ HelpDialog.tsx     # 도움말 버튼/모달 (client)
+│  ├─ RefreshButton.tsx  # 새로고침 버튼 (client + Server Action)
+│  ├─ actions.ts         # Server Action (revalidatePath)
+│  └─ p/[repo]/page.tsx  # 카드 본문 보기 (preview)
 ├─ lib/
-│  ├─ github.ts      # GitHub API로 STATUS.md·커밋 수집
-│  └─ parse.ts       # STATUS.md → 화면용 데이터 가공
+│  ├─ github.ts          # GitHub API로 STATUS.md·커밋 수집 (private 자동 스캔)
+│  └─ parse.ts           # STATUS.md → 화면용 데이터 가공 + 신호등 계산
+├─ public/               # PWA 자산
+│  ├─ manifest.json      # 앱 정의 (이름·테마색·standalone)
+│  ├─ sw.js              # service worker (network-first, GitHub API는 캐시 제외)
+│  ├─ icon-192.png
+│  ├─ icon-512.png
+│  └─ apple-touch-icon.png
 ├─ templates/
-│  ├─ STATUS.template.md   # 복사용 표준 템플릿
-│  └─ 예시_*.md            # 사용자님 프로젝트 예시 4종
+│  └─ STATUS.template.md # 복사용 표준 템플릿
 ├─ .env.local.example
-└─ package.json
+├─ package.json
+├─ STATUS.md             # 이 repo 자체의 카드 데이터
+└─ HANDOFF.md            # 장기 인수인계 문서
 ```
 
 ---
 
 ## ❓ 자주 막히는 곳
 
-- **카드가 안 보여요** → 해당 repo에 STATUS.md가 있는지, TARGET_REPOS 이름이 정확한지 확인.
-- **GitHub API 오류 401/403** → 토큰 만료 또는 권한 부족. Contents: Read-only 확인.
-- **진행률이 0%** → Front Matter에 `progress:` 숫자가 있는지 확인. 없으면 체크리스트 비율로 자동 계산됨.
-- **방치(빨강)로만 떠요** → 커밋을 안 한 지 7일 넘은 것. push하면 색이 살아납니다.
+- **카드가 안 보여요** → 해당 repo에 STATUS.md가 푸시되었는지, 토큰의 Repository access가 그 repo를 포함하는지 확인.
+- **GitHub API 오류 401/403** → 가장 흔한 원인은 토큰 prefix 중복(`github_pat_github_pat_...`). `.env.local`의 값을 먼저 의심. 그 다음 권한 부족(Contents: Read-only).
+- **진행률이 0%** → Front Matter에 `progress:` 숫자가 있는지 확인. 없으면 체크리스트(`- [x]`) 비율로 자동 계산됨.
+- **모두 빨강(방치)로만 떠요** → 마지막 커밋이 7일 넘은 것. push하면 색이 살아납니다.
+- **변경이 즉시 안 보여요** → ISR 캐시(최대 1시간). 헤더 우측 "🔄 새로고침"을 누르면 즉시 갱신.
+- **Vercel 환경변수가 환경별로 분산** → 모두 지우고 "All Environments" 단일 항목으로 재등록 권장.
+- **PowerShell로 Vercel CLI 환경변수 set 시 BOM/CRLF가 끼어듦** → Vercel 웹 UI에 직접 붙여넣기 권장.
