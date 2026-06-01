@@ -9,6 +9,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { marked } from 'marked';
+import sanitizeHtml from 'sanitize-html';
 import matter from 'gray-matter';
 import { fetchProjectStatus } from '@/lib/github';
 
@@ -68,7 +69,20 @@ export default async function PreviewPage({ params }: Props) {
   // 실제 YAML이 어떻게 파싱될지 단정 못함(updated가 Date가 되거나 progress가
   // string이 되는 사례). unknown으로 받고 렌더 시 헬퍼로 변환.
   const fm = parsed.data as Record<string, unknown>;
-  const bodyHtml = (await marked.parse(parsed.content)) as string;
+  // marked는 HTML을 새니타이즈하지 않는다. STATUS.md에 raw HTML(<script>,
+  // onerror, javascript: 링크)이 섞이면 dangerouslySetInnerHTML에서 실행되므로
+  // 렌더 전에 반드시 새니타이즈. 체크리스트 체크박스(input)는 살려둔다.
+  const rawHtml = (await marked.parse(parsed.content)) as string;
+  const bodyHtml = sanitizeHtml(rawHtml, {
+    allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'input']),
+    allowedAttributes: {
+      ...sanitizeHtml.defaults.allowedAttributes,
+      img: ['src', 'alt', 'title'],
+      input: ['type', 'checked', 'disabled'],
+    },
+    // javascript:/data: 등 위험 스킴 차단, http(s)·mailto만 허용
+    allowedSchemes: ['http', 'https', 'mailto'],
+  });
 
   const progressNum =
     typeof fm.progress === 'number'

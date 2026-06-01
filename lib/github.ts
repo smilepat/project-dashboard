@@ -8,6 +8,25 @@
 
 const GITHUB_API = "https://api.github.com";
 
+// repo가 많을 때 GitHub API에 동시 요청이 폭주(secondary rate limit/abuse 차단)
+// 하지 않도록 동시 처리 개수를 제한하는 작업 풀. 외부 의존성 없이 구현.
+async function mapLimit<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (cursor < items.length) {
+      const idx = cursor++;
+      out[idx] = await fn(items[idx]);
+    }
+  });
+  await Promise.all(workers);
+  return out;
+}
+
 // 환경변수에 붙는 앞뒤 공백/줄바꿈만 제거.
 const sanitize = (v: string | undefined): string => (v ?? '').trim();
 
@@ -108,21 +127,20 @@ export async function fetchProjectStatus(repo: string): Promise<RawProject> {
 export async function fetchAllProjects(): Promise<RawProject[]> {
   const names = await getTargetRepoNames();
 
-  // 모든 repo를 동시에(병렬) 처리해서 빠르게
-  const results = await Promise.all(
-    names.map(async (repo) => {
-      const [statusRaw, lastCommit] = await Promise.all([
-        getStatusFile(repo),
-        getLastCommitDate(repo),
-      ]);
-      return {
-        repo,
-        statusRaw,
-        lastCommit,
-        url: `https://github.com/${USERNAME}/${repo}`,
-      };
-    })
-  );
+  // 동시성 6으로 제한해 처리(repo당 2호출 → 최대 12 동시). repo 수가 많아도
+  // GitHub의 secondary rate limit에 걸리지 않게 한다.
+  const results = await mapLimit(names, 6, async (repo) => {
+    const [statusRaw, lastCommit] = await Promise.all([
+      getStatusFile(repo),
+      getLastCommitDate(repo),
+    ]);
+    return {
+      repo,
+      statusRaw,
+      lastCommit,
+      url: `https://github.com/${USERNAME}/${repo}`,
+    };
+  });
 
   // STATUS.md가 있는 프로젝트만 남긴다
   return results.filter((p) => p.statusRaw !== null);

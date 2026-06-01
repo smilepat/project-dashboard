@@ -13,14 +13,13 @@
     "marked": "^18.0.4",
     "next": "^16.2.6",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "sanitize-html": "^2.17.4"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
-    "autoprefixer": "^10",
-    "postcss": "^8",
-    "tailwindcss": "^3.4.1",
+    "@types/sanitize-html": "^2.16.1",
     "typescript": "^5"
   }
 }

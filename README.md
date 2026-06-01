@@ -57,9 +57,14 @@ cp .env.local.example .env.local
 GITHUB_USERNAME=본인_깃허브_아이디
 GITHUB_TOKEN=복사한_토큰
 TARGET_REPOS=repo-a,repo-b,repo-c,repo-d
+DASH_PASSWORD=                      # 로컬은 비워도 됨. 배포 시 반드시 설정.
 ```
 
 > `TARGET_REPOS`를 비우면 토큰으로 볼 수 있는 본인 소유 repo(private 포함)를 자동으로 훑습니다.
+>
+> ⚠️ **`DASH_PASSWORD`**: 이 대시보드는 private repo의 STATUS 내용을 화면에 노출합니다.
+> 로컬 개발에선 비워도 되지만, **배포 시에는 반드시 설정**하세요. 설정하면 사이트 접근 시
+> `admin` / 이 비밀번호로 Basic Auth가 걸립니다. 비워서 배포하면 URL을 아는 누구나 봅니다.
 
 ### 4. 실행
 
@@ -76,8 +81,10 @@ npm run dev
 1. 이 폴더를 GitHub repo로 push (`project-dashboard`)
 2. <https://vercel.com> → "Add New Project" → 그 repo 선택
 3. **Environment Variables**에 `.env.local`의 값들을 그대로 등록
-   (`GITHUB_USERNAME`, `GITHUB_TOKEN`, `TARGET_REPOS`)
+   (`GITHUB_USERNAME`, `GITHUB_TOKEN`, `TARGET_REPOS`, `DASH_PASSWORD`)
    - ⚠️ 처음부터 **All Environments** 단일 항목으로 등록할 것. 환경별 분산 등록은 사고가 잘 남.
+   - 🔒 **`DASH_PASSWORD`를 반드시 등록**할 것. 누락하면 대시보드가 인증 없이 공개되어
+     private repo 내용이 노출됩니다.
 4. Deploy 클릭 → `프로젝트이름.vercel.app` 주소 발급
 5. 폰·태블릿·다른 PC에서 접속 테스트 → 즐겨찾기 등록
 

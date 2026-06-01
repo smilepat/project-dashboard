@@ -195,7 +195,7 @@ export default async function Page() {
         }}
       >
         {projects.map((p) => (
-          <Card key={p.name} p={p} />
+          <Card key={p.repo} p={p} />
         ))}
       </div>
     </main>

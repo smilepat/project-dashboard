@@ -33,8 +33,9 @@
 ```bash
 npm run dev      # 로컬 dev 서버 (포트 3000)
 npm run build    # 프로덕션 빌드 (Vercel과 동일)
-npm run lint     # eslint
 ```
+
+> lint 스크립트는 없음(eslint 미설정). 타입 검사는 `npm run build`가 함께 수행한다.
 
 ---
 

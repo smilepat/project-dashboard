@@ -1,8 +1,8 @@
 ---
 project: project-dashboard
 status: active
-progress: 95
-updated: 2026-05-25
+progress: 96
+updated: 2026-06-01
 pc: home-desktop
 ---
 
@@ -10,7 +10,18 @@ pc: home-desktop
 
 ## 🎯 한 줄 상태
 
-대시보드 production 작동 중 + PWA 설치 가능. 남은 일은 다른 repo의 STATUS.md 배포와 각 프로젝트 CLAUDE.md에 자동 갱신 블록 삽입.
+대시보드 production 작동 중 + PWA 설치 가능 + 보안 검증/개선 1차 완료(인증 게이트·XSS 새니타이즈·API 동시성). 남은 일은 배포 시 DASH_PASSWORD 설정과 다른 repo의 STATUS.md 배포.
+
+## 🔒 2026-06-01 보안·품질 개선 (검증 후 적용)
+
+- [x] preview 페이지 마크다운 XSS 새니타이즈 (`sanitize-html`) — script/onerror/javascript: 차단, 체크박스 유지
+- [x] 접근 제어 추가 (`proxy.ts` Basic Auth, `DASH_PASSWORD`) — 배포 시 env 설정 필요
+- [x] GitHub API 동시성 6으로 제한 (repo 다수 시 rate limit 방어)
+- [x] 카드 React key `name`→`repo` (중복명 충돌 방지)
+- [x] 미사용 Tailwind 체인(tailwind/postcss/autoprefixer) 제거 → audit moderate 일부 해소
+- [x] 문서/스크립트 불일치 정리 (없는 `npm run lint` 안내 제거)
+- [ ] **배포 전 필수**: Vercel에 `DASH_PASSWORD` 환경변수 등록
+- [ ] (후속) `lib/parse.ts` 단위 테스트 추가
 
 ## 📊 진행 체크리스트
 
