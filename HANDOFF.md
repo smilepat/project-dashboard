@@ -148,15 +148,38 @@ repo-e Turso 마이그레이션 재개. E: 드라이브
 상태 확인)부터 진행해줘.
 ```
 
-### 신규 PC에서 처음 시작
+### 신규 PC에서 처음 시작 (권장 — Vercel이 env의 Single Source of Truth)
+
+```bash
+git clone https://github.com/smilepat/project-dashboard.git
+cd project-dashboard
+npm run setup    # vercel link + vercel env pull(.env.local) + npm install
+npm run dev      # http://localhost:3000
+```
+
+- `npm run setup`은 처음에 **`vercel login`/프로젝트 선택**을 물어본다(브라우저 인증).
+  연결 후 Vercel에 등록된 환경변수를 `.env.local`로 자동 내려받으므로 **토큰을 손으로 복붙할 필요 없다**.
+- env를 바꾸면(예: 토큰 교체) Vercel 대시보드에서 수정 → `vercel env pull .env.local`로 재동기화.
+- **`DASH_PASSWORD`**: 로컬 dev는 비어 있어도 됨(인증 게이트 비활성). 아래 "주의" 참고.
+
+> 🔁 **이미 옛 클론이 있는 PC라면**: 2026-06-01에 git 히스토리를 재작성(force push)했으므로
+> `git pull`이 충돌난다. 폴더를 지우고 다시 clone하거나
+> `git fetch origin && git reset --hard origin/master` 한 번만 실행하면 이후 정상.
+
+#### 수동 셋업(Vercel CLI 없이)이 필요할 때
 
 ```bash
 git clone https://github.com/smilepat/project-dashboard.git
 cd project-dashboard
 npm install
-cp .env.local.example .env.local   # 토큰 채우기
+cp .env.local.example .env.local   # GITHUB_USERNAME/GITHUB_TOKEN 직접 채우기, DASH_PASSWORD는 비워도 됨
 npm run dev
 ```
+
+> ⚠️ **DASH_PASSWORD 환경 스코프**: 로컬 dev가 매번 Basic Auth를 묻지 않게 하려면
+> Vercel에서 `DASH_PASSWORD`를 **Production·Preview에만** 두고 **Development는 비활성**으로 둔다.
+> 그러면 `vercel env pull`이 가져오는 .env.local의 DASH_PASSWORD가 비어 로컬은 게이트 없이 뜨고,
+> 배포본(Production/Preview)만 잠긴다. (현재 All Environments로 두면 로컬도 잠기지만 동작엔 문제 없음.)
 
 ---
 

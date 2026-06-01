@@ -53,6 +53,8 @@ npm run build    # 프로덕션 빌드 (Vercel과 동일)
 | 파일 | 역할 |
 |---|---|
 | `app/page.tsx` | 대시보드 메인 (서버 컴포넌트) |
+| `proxy.ts` | 접근 제어 Basic Auth 게이트 (`DASH_PASSWORD`, 구 middleware 관례) |
+| `app/p/[repo]/page.tsx` | STATUS.md 본문 preview (marked + sanitize-html) |
 | `app/layout.tsx` | PWA 메타 + service worker 등록 |
 | `app/HelpDialog.tsx` | 도움말 버튼/모달 (client component) |
 | `lib/github.ts` | GitHub API (`/user/repos?affiliation=owner` 폴백) |

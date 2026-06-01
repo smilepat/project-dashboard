@@ -28,6 +28,15 @@
 
 ## 🔧 Phase 1~2 — 대시보드 로컬 실행
 
+> **다른 PC에서 이어서 작업한다면 이 한 줄이면 끝:**
+> ```bash
+> git clone https://github.com/smilepat/project-dashboard.git && cd project-dashboard
+> npm run setup    # vercel link + env pull(.env.local) + npm install
+> npm run dev
+> ```
+> `npm run setup`이 Vercel 인증·연결 후 환경변수를 자동으로 내려받는다(토큰 복붙 불필요).
+> 아래 2~3번은 Vercel CLI 없이 **수동으로** 셋업할 때만 필요하다.
+
 ### 1. 라이브러리 설치
 
 ```bash
