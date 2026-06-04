@@ -1,8 +1,8 @@
 ---
 project: project-dashboard
 status: active
-progress: 96
-updated: 2026-06-01
+progress: 97
+updated: 2026-06-04
 pc: home-desktop
 ---
 
@@ -10,7 +10,7 @@ pc: home-desktop
 
 ## 🎯 한 줄 상태
 
-대시보드 production 작동 중 + PWA 설치 가능 + 보안 검증/개선 1차 완료(인증 게이트·XSS 새니타이즈·API 동시성). 남은 일은 배포 시 DASH_PASSWORD 설정과 다른 repo의 STATUS.md 배포.
+대시보드 production 작동 중 + PWA 설치 가능 + 보안 검증/개선 1차 완료(인증 게이트·XSS 새니타이즈·API 동시성). 배포본 인증 게이트 라이브 확인됨(401). 남은 일은 다른 repo의 STATUS.md 배포.
 
 ## 🔒 2026-06-01 보안·품질 개선 (검증 후 적용)
 
@@ -20,7 +20,7 @@ pc: home-desktop
 - [x] 카드 React key `name`→`repo` (중복명 충돌 방지)
 - [x] 미사용 Tailwind 체인(tailwind/postcss/autoprefixer) 제거 → audit moderate 일부 해소
 - [x] 문서/스크립트 불일치 정리 (없는 `npm run lint` 안내 제거)
-- [ ] **배포 전 필수**: Vercel에 `DASH_PASSWORD` 환경변수 등록
+- [x] **배포 완료**: Vercel에 `DASH_PASSWORD` 등록 → production 인증 게이트 라이브 (2026-06-04 실측: root/`/p/*` 401, `/manifest.json` 200)
 - [ ] (후속) `lib/parse.ts` 단위 테스트 추가
 
 ## 📊 진행 체크리스트
