@@ -1,7 +1,7 @@
 ---
 project: project-dashboard
 status: active
-progress: 97
+progress: 99
 updated: 2026-06-04
 pc: home-desktop
 ---
@@ -10,7 +10,7 @@ pc: home-desktop
 
 ## 🎯 한 줄 상태
 
-대시보드 production 작동 중 + PWA 설치 가능 + 보안 검증/개선 1차 완료(인증 게이트·XSS 새니타이즈·API 동시성). 배포본 인증 게이트 라이브 확인됨(401). 남은 일은 다른 repo의 STATUS.md 배포.
+대시보드 production 작동 + PWA + 보안(인증 게이트·XSS·동시성) 완료. 글로벌 CLAUDE.md 규칙으로 전 프로젝트 STATUS.md 자동 관리 + 실제 repo 6장 시딩 완료. 사실상 유지보수 단계 — 남은 건 선택적 단위 테스트와 공개 여부 결정.
 
 ## 🔒 2026-06-01 보안·품질 개선 (검증 후 적용)
 
@@ -39,22 +39,22 @@ pc: home-desktop
 - [x] /p/[repo] preview 페이지 (대시보드 안에서 STATUS.md 본문 마크다운 렌더)
 - [x] private repo 자동 스캔 폴백을 `/user/repos?affiliation=owner`로 교체
 - [x] HANDOFF.md 작성 (장기 인수인계 문서)
-- [ ] `repo-a`에 STATUS.md 작성·push (사용자에게 진행 상황 확인 후)
-- [ ] `repo-c`에 STATUS.md 작성·push (사용자에게 진행 상황 확인 후)
-- [ ] (선택) `repo-d`, `repo-b` 등 실제 존재하는 repo에 STATUS.md 추가
-- [ ] 각 프로젝트 CLAUDE.md에 "세션 규칙 (STATUS.md 자동 관리)" 블록 삽입
-- [ ] README.md를 PWA·도움말·새로고침·preview 페이지 반영해 갱신
+- [x] README.md PWA·도움말·새로고침·preview 페이지 반영 (완료 확인 2026-06-04)
+- [x] 글로벌 `~/.claude/CLAUDE.md`에 STATUS.md 자동 관리 규칙 삽입 → 전 프로젝트 자동 적용 (2026-06-04)
+- [x] 실제 진행 repo STATUS.md 시딩·push: book-collector·csat-mastery·phonics2csat·instant-english (2026-06-04, 총 6장 카드)
+- [ ] (선택) `lib/parse.ts` 단위 테스트 추가
 
 ## ⏭️ 다음에 할 일 (Next Actions)
 
-1. README.md 갱신 — PWA, RefreshButton, /p/[repo] preview, HelpDialog 반영 + 폴더 구조 트리 업데이트
-2. `repo-a`, `repo-c`의 진행 상황을 짧게 듣고 STATUS.md 작성 → push 안내
-3. 각 프로젝트 CLAUDE.md에 README의 "Phase 4" 블록 (STATUS.md 자동 관리) 삽입
+- 시스템은 사실상 완성. 신규 프로젝트는 글로벌 규칙이 STATUS.md를 자동 생성·갱신하므로 별도 작업 불필요.
+1. (선택) `lib/parse.ts` 단위 테스트 추가 — Front Matter/신호등 파싱 검증
+2. 카드 표시 확인 — 헤더 "🔄 새로고침" 또는 ISR(≤1h) 후 6장 카드 노출 확인
 
 ## 🤔 결정 대기 (Decisions Needed)
 
-- 없음 — sanitize 단순화 결정 끝남 (`.trim()`만 유지).
+- **repo 공개 전환 여부** — 민감정보 스크럽으로 공개 안전 확인됨(파일+히스토리). 다만 아직 private 유지 중. 공개 여부 미정.
+- **`DASH_PASSWORD` 환경 스코프** — 현재 All Environments. 로컬 dev 편의를 원하면 Production/Preview만으로 제한 가능(동작엔 무관).
 
 ## 🔗 Claude Code 재개 프롬프트
 
-"HANDOFF.md 읽고 우선순위 1번부터 진행. README.md 갱신 끝나면 repo-a / repo-c STATUS.md 작성 이어서 하자."
+"STATUS.md 읽고 (선택) lib/parse.ts 단위 테스트부터. 신규 프로젝트는 글로벌 규칙이 STATUS.md를 자동 관리하므로 대시보드는 유지보수 단계."
