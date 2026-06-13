@@ -44,6 +44,7 @@ pc: DESKTOP-A8ES4P0
 - [x] 실제 진행 repo STATUS.md 시딩·push: book-collector·csat-mastery·phonics2csat·instant-english (2026-06-04, 총 6장 카드)
 - [x] 세션 규칙 강화 (2026-06-13): `pc` 값을 `hostname`으로 실제 PC 이름 채우도록 CLAUDE.md/README/템플릿 수정. efl-reading-trainer에 CLAUDE.md 전파
 - [x] `lib/parse.ts` 단위 테스트 추가 (vitest, 2026-06-13)
+- [x] `lib/github.ts` 단위 테스트 추가 (fetch mock, 6 케이스) + GitHub Actions CI(`npm test` + `tsc`) + proxy.ts timing-safe 비교 + CI 액션 v5 (2026-06-13)
 
 ## ⏭️ 다음에 할 일 (Next Actions)
 
