@@ -1,15 +1,15 @@
 ---
 project: project-dashboard
 status: active
-progress: 95
-updated: 2026-05-24
-pc: home-desktop
+progress: 99
+updated: 2026-06-13
+pc: DESKTOP-A8ES4P0
 ---
 
 # 🤝 Handoff Document — Project Dashboard
 
 > 다음 세션(또는 다른 PC)에서 이 문서를 먼저 읽고 이어서 작업하세요.
-> 최종 갱신: **2026-05-24**
+> 최종 갱신: **2026-06-13**
 
 ---
 
@@ -56,7 +56,7 @@ pc: home-desktop
 - [x] GitHub 토큰 (fine-grained PAT) — "All repositories" + Contents Read-only
 - [x] `.env.local` 정상 세팅 (UTF-8 BOM 없음)
 - [x] Vercel 프로젝트 + 환경변수 깔끔 재구성 (3개 환경 모두 적용)
-- [x] STATUS.md 표시 중인 repo: `project-dashboard`, `repo-e` (2장)
+- [x] STATUS.md 표시 중인 repo: `project-dashboard` 외 실제 진행 repo 다수 시딩 완료 (TARGET_REPOS 비움 → 본인 소유 repo 자동 스캔)
 
 ### 2-4. 문서
 
@@ -95,22 +95,21 @@ pc: home-desktop
 
 ## 4. 아직 안 한 것 ⏭️
 
-### 🟡 우선순위 1 — 다른 repo의 STATUS.md 배포
+> 시스템은 사실상 완성(유지보수 단계). 코드 작업은 더 없고, 남은 건 **사용자 결정 2건**뿐이다.
 
-대시보드는 잘 뜨지만 카드가 아직 2장. 더 많은 repo에 STATUS.md를 두면 카드가 늘어남.
+### 🟢 사용자 결정 대기 (코드 아님)
 
-- [ ] `repo-a`에 STATUS.md 작성·push (사용자에게 진행 상황 물어본 뒤)
-- [ ] `repo-c`에 STATUS.md 작성·push (사용자에게 진행 상황 물어본 뒤)
-- [ ] (선택) `repo-d`, `repo-b` 등이 실제 존재하면 STATUS.md 추가
+- [ ] **repo 공개 전환 여부** — 민감정보 스크럽 완료(파일+히스토리)로 공개 안전 확인됨. 아직 private 유지 중. 공개할지 미정.
+- [ ] **`DASH_PASSWORD` 환경 스코프** — 현재 All Environments(로컬도 잠김). 로컬 dev 편의를 원하면 Production/Preview만으로 제한 가능(동작엔 무관).
 
-### 🟢 우선순위 2 — 다른 repo의 CLAUDE.md 자동 갱신 블록
+### ✅ 최근 완료 (2026-06-13)
 
-각 프로젝트의 `CLAUDE.md`에 README의 "Phase 4" 블록을 넣어 매 세션 STATUS.md를 자동 관리하도록.
+- [x] `lib/parse.ts` 단위 테스트 추가 (vitest 도입, `npm test`)
+- [x] `pc` 값을 `hostname`으로 실제 PC 이름 채우도록 세션 규칙 강화 (CLAUDE.md/README/템플릿) + efl-reading-trainer에 CLAUDE.md 전파
 
-### 🔵 우선순위 3 — 미세 개선
+### 참고 — 신규 repo는 자동
 
-- [ ] README.md를 PWA·도움말 버튼 반영해 갱신
-- [ ] 이 repo의 STATUS.md `progress: 80`을 현재 상황 반영해 갱신
+각 프로젝트에 README의 세션 규칙 블록(`## 세션 규칙`)을 넣으면 매 세션 STATUS.md가 자동 관리된다. `TARGET_REPOS`를 비워둔 상태라 신규 repo도 STATUS.md만 push하면 카드가 자동 추가된다.
 
 ---
 
@@ -133,19 +132,11 @@ pc: home-desktop
 
 다음 작업을 시작할 때 Claude Code에 아래 중 하나를 붙여넣으세요.
 
-### 다른 repo STATUS.md 배포 이어가기
+### 유지보수/상태 확인 이어가기
 
 ```text
-HANDOFF.md 읽고 우선순위 1번부터 진행. repo-a와 repo-c의
-진행 상황을 짧게 물어본 뒤 STATUS.md 두 개 작성하고 push 안내해줘.
-```
-
-### repo-e Turso 마이그레이션 (E: 드라이브 준비 후)
-
-```text
-repo-e Turso 마이그레이션 재개. E: 드라이브
-연결됐어. STATUS.md의 '재개 메모' 섹션 읽고 1번(vocab_reference 시드
-상태 확인)부터 진행해줘.
+HANDOFF.md와 STATUS.md 읽고 현재 상태 요약. 남은 사용자 결정 2건
+(repo 공개 / DASH_PASSWORD 스코프) 중 정할 게 있으면 진행해줘.
 ```
 
 ### 신규 PC에서 처음 시작 (권장 — Vercel이 env의 Single Source of Truth)
@@ -228,4 +219,4 @@ project-dashboard/
 
 ## 9. 한 줄 요약 🎯
 
-> 대시보드는 production 작동 중 + PWA 설치 가능. 남은 일은 다른 repo의 STATUS.md 배포와 repo-e의 Turso 마이그레이션(E: 드라이브 대기 중).
+> 대시보드는 production 작동 중 + PWA 설치 가능 + parse.ts 단위 테스트 완비. 코드 작업은 사실상 종료(유지보수 단계). 남은 건 사용자 결정 2건(repo 공개 여부 / DASH_PASSWORD 환경 스코프)뿐.

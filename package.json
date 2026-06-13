@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "setup": "vercel link && vercel env pull .env.local && npm install"
+    "setup": "vercel link && vercel env pull .env.local && npm install",
+    "test": "vitest run"
   },
   "dependencies": {
     "gray-matter": "^4.0.3",
@@ -20,6 +21,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/sanitize-html": "^2.16.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   }
 }
