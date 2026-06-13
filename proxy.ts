@@ -15,17 +15,32 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+// 상수 시간(timing-safe) 문자열 비교.
+// 일반 `!==`는 첫 불일치 문자에서 즉시 끝나 비교 시간이 입력에 따라 달라지므로,
+// 이론상 타이밍 공격으로 비밀번호를 한 글자씩 추측당할 수 있다.
+// Edge 런타임에는 Node의 crypto.timingSafeEqual이 없으므로, 조기 반환 없이
+// 더 긴 쪽 길이만큼 순회하며 차이를 누적해 항상 동일한 경로로 비교한다.
+function safeEqual(a: string, b: string): boolean {
+  const len = Math.max(a.length, b.length);
+  let diff = a.length ^ b.length; // 길이 차이도 불일치로 반영
+  for (let i = 0; i < len; i++) {
+    // 범위를 벗어나면 charCodeAt가 NaN → `| 0`으로 0 처리
+    diff |= (a.charCodeAt(i) | 0) ^ (b.charCodeAt(i) | 0);
+  }
+  return diff === 0;
+}
+
 export function proxy(req: NextRequest) {
   const password = process.env.DASH_PASSWORD;
 
   // 비밀번호 미설정 → 게이트 비활성(개발 편의). 배포 시 반드시 설정해야 보호됨.
   if (!password) return NextResponse.next();
 
-  const auth = req.headers.get('authorization');
+  const auth = req.headers.get('authorization') ?? '';
   // btoa는 Edge 런타임(proxy)에서 사용 가능
   const expected = 'Basic ' + btoa(`admin:${password}`);
 
-  if (auth !== expected) {
+  if (!safeEqual(auth, expected)) {
     return new NextResponse('Authentication required.', {
       status: 401,
       headers: { 'WWW-Authenticate': 'Basic realm="project-dashboard"' },
