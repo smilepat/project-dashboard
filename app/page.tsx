@@ -10,6 +10,7 @@ import Link from "next/link";
 import { fetchAllProjects } from "@/lib/github";
 import { parseAll, Project, Health } from "@/lib/parse";
 import HelpDialog from "./HelpDialog";
+import GuideDialog from "./GuideDialog";
 import RefreshButton from "./RefreshButton";
 
 // 1시간(3600초)마다 페이지를 자동으로 새로 굽는다 (ISR)
@@ -177,6 +178,7 @@ export default async function Page() {
         {/* 헤더 우측 액션 — 새로고침 + 도움말 */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <RefreshButton />
+          <GuideDialog />
           <HelpDialog />
         </div>
       </header>
