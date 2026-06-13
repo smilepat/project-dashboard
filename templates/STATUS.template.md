@@ -3,7 +3,7 @@ project: 프로젝트 이름
 status: active        # active(진행중) | paused(보류) | done(완료)
 progress: 0           # 0~100 사이 숫자만
 updated: 2026-05-23   # YYYY-MM-DD 형식
-pc: home-desktop      # 마지막 작업 PC 이름 (예: home-desktop, laptop)
+pc: ""                # 마지막 작업 PC 이름. 비워두지 말 것 — hostname 명령으로 실제 PC 이름을 채운다 (예: DESKTOP-A8ES4P0, laptop)
 ---
 
 # 프로젝트 이름 — STATUS

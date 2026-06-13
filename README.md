@@ -127,6 +127,10 @@ npm run dev
   - Front Matter의 progress(0~100), updated(오늘 날짜), pc(현재 PC) 수정
   - 완료한 체크리스트 항목을 [x]로 변경
   - "다음에 할 일" 목록 갱신
+- pc 값은 추측하거나 템플릿 예시값(home-desktop 등)을 그대로 두지 않는다.
+  반드시 이 PC의 실제 이름을 명령으로 확인해 채운다:
+  Windows는 `hostname`(또는 `$env:COMPUTERNAME`), macOS/Linux는 `hostname`.
+  사용자가 정해둔 별칭이 있으면 그 별칭을 우선한다.
 - STATUS.md의 Front Matter 형식(--- 블록)은 절대 깨뜨리지 않는다.
 - 갱신 후 git add STATUS.md && git commit && git push 명령어를 안내한다.
 ```
