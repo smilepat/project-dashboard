@@ -47,16 +47,14 @@ pc: DESKTOP-A8ES4P0
 
 ## ⏭️ 다음에 할 일 (Next Actions)
 
-- 시스템은 사실상 완성. 신규 프로젝트는 글로벌 규칙이 STATUS.md를 자동 생성·갱신하므로 별도 작업 불필요.
-1. (사용자 결정 대기) repo 공개 전환 여부 — 아래 "결정 대기" 참고
-2. (사용자 결정 대기) `DASH_PASSWORD` 환경 스코프 — 아래 "결정 대기" 참고
-3. 카드 표시 확인 — 헤더 "🔄 새로고침" 또는 ISR(≤1h) 후 카드 노출 확인
+- 시스템 완성 + 결정 사항 모두 해소. 유지보수 단계 — 별도 예정 작업 없음.
+- 신규 프로젝트는 글로벌 규칙이 STATUS.md를 자동 생성·갱신하므로 별도 작업 불필요.
 
-## 🤔 결정 대기 (Decisions Needed)
+## ✅ 결정 완료 (2026-06-13)
 
-- **repo 공개 전환 여부** — 민감정보 스크럽으로 공개 안전 확인됨(파일+히스토리). 다만 아직 private 유지 중. 공개 여부 미정.
-- **`DASH_PASSWORD` 환경 스코프** — 현재 All Environments. 로컬 dev 편의를 원하면 Production/Preview만으로 제한 가능(동작엔 무관).
+- **repo 공개** → **public 전환 완료**. 대시보드 URL은 `DASH_PASSWORD` Basic Auth로 계속 보호됨.
+- **`DASH_PASSWORD` 환경 스코프** → **All Environments 유지** 결정(로컬도 게이트 적용, 동작엔 무관).
 
 ## 🔗 Claude Code 재개 프롬프트
 
-"STATUS.md 읽고 진행 상황 파악. 대시보드는 유지보수 단계 — 남은 건 사용자 결정 2건(repo 공개 / DASH_PASSWORD 스코프)뿐. 신규 프로젝트는 글로벌 규칙이 STATUS.md를 자동 관리."
+"STATUS.md 읽고 진행 상황 파악. 대시보드는 유지보수 단계 — 코드/결정 모두 종료. 신규 프로젝트는 글로벌 규칙이 STATUS.md를 자동 관리."
