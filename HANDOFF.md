@@ -2,14 +2,14 @@
 project: project-dashboard
 status: active
 progress: 99
-updated: 2026-06-13
-pc: DESKTOP-A8ES4P0
+updated: 2026-06-26
+pc: DESKTOP-J5NGRMC
 ---
 
 # 🤝 Handoff Document — Project Dashboard
 
 > 다음 세션(또는 다른 PC)에서 이 문서를 먼저 읽고 이어서 작업하세요.
-> 최종 갱신: **2026-06-13**
+> 최종 갱신: **2026-06-26**
 
 ---
 
@@ -37,11 +37,17 @@ pc: DESKTOP-A8ES4P0
 ### 2-1. 코드
 
 - [x] [app/layout.tsx](app/layout.tsx) — 최상위 레이아웃 + **PWA 메타데이터**(manifest/viewport/themeColor) + service worker 등록
-- [x] [app/page.tsx](app/page.tsx) — 대시보드 메인 (서버 컴포넌트, ISR 1시간) + 헤더 우측 도움말 버튼
+- [x] [app/page.tsx](app/page.tsx) — 대시보드 메인 (서버 컴포넌트, ISR 1시간) + 헤더 우측 액션(새로고침·앱 안내·도움말)
 - [x] [app/HelpDialog.tsx](app/HelpDialog.tsx) — 도움말 모달 (client component, useState 토글 + ESC + 본문 스크롤 잠금)
-- [x] [app/globals.css](app/globals.css) — Tailwind + 기본 스타일
-- [x] [lib/github.ts](lib/github.ts) — GitHub API 호출 (private repo 자동 스캔, `/user/repos?affiliation=owner` 폴백)
-- [x] [lib/parse.ts](lib/parse.ts) — STATUS.md → 카드 데이터 변환 + 신호등 계산
+- [x] [app/GuideDialog.tsx](app/GuideDialog.tsx) — "📖 앱 안내" 모달 (앱 개요·작동 방식·사용자 가이드, client component)
+- [x] [app/RefreshButton.tsx](app/RefreshButton.tsx) — 헤더 새로고침 버튼 (client) → Server Action 호출로 ISR 즉시 무효화
+- [x] [app/actions.ts](app/actions.ts) — Server Action `revalidateRoot()` (`/` ISR 캐시 무효화)
+- [x] [app/p/[repo]/page.tsx](app/p/%5Brepo%5D/page.tsx) — `/p/<repo>` preview 페이지 (STATUS.md 본문 마크다운 렌더 + XSS 새니타이즈)
+- [x] [app/globals.css](app/globals.css) — 기본 스타일 (inline 스타일 위주, Tailwind 의존성은 제거됨)
+- [x] [lib/github.ts](lib/github.ts) — GitHub API 호출 (private repo 자동 스캔, `/user/repos?affiliation=owner` 폴백 + 페이지네이션, 404만 null·그 외 오류는 전파)
+- [x] [lib/parse.ts](lib/parse.ts) — STATUS.md → 카드 데이터 변환 + 신호등 계산 (`getHealth`/`daysAgo` export → preview와 공유)
+- [x] [proxy.ts](proxy.ts) — 배포본 접근 제어 (Basic Auth, `DASH_PASSWORD`, timing-safe 비교)
+- [x] [lib/parse.test.ts](lib/parse.test.ts) · [lib/github.test.ts](lib/github.test.ts) — vitest 단위 테스트 (총 23개 통과) + GitHub Actions CI(`npm test` + `tsc`)
 - [x] [templates/STATUS.template.md](templates/STATUS.template.md) — 표준 양식
 
 ### 2-2. PWA 자산 (public/ 폴더)
@@ -63,6 +69,18 @@ pc: DESKTOP-A8ES4P0
 - [x] [README.md](README.md) — Phase 0~4 따라하기 가이드
 - [x] [STATUS.md](STATUS.md) — 이 repo 자체용
 - [x] HANDOFF.md (← 이 문서)
+
+### 2-5. 자기점검·개선 (2026-06-26)
+
+> 코드 전반 자기점검 후 발견한 개선점 4건 적용. 빌드·타입검사·테스트(23개) 모두 통과.
+
+- [x] **github.ts API 오류 처리** — 404만 `null`, 403(rate limit)·5xx는 위로 전파.
+      기존엔 모든 오류를 삼켜서 일시 장애 때 프로젝트가 카드에서 **조용히 사라졌음**. 회귀 방지 테스트 2개 추가.
+- [x] **sw.js 비공개 화면 캐시 제외** — `'/'`(Basic Auth 보호 + private 데이터)를 프리캐시·런타임 캐시에서 제외, `CACHE_NAME` v1→v2(옛 캐시 자동 정리).
+- [x] **preview 신호등 색 통일** — `/p/[repo]` 헤더 색을 메인 카드와 같은 `getHealth`(커밋 최신성) 기준으로. `parse.ts`의 `getHealth`/`daysAgo` export.
+- [x] **page.tsx strict 정합** — `catch (e: any)` → `unknown` + `Error` 좁히기.
+- [ ] **(모니터링) Next.js postcss 취약점**(GHSA-qx2v-qp2m-jg93) — 안정판 패치(16.3.0+) 미출시.
+      `npm audit fix --force`는 next를 9.x로 다운그레이드시키니 **금지**. 빌드 도구 한정이라 런타임 위험 낮음 → 16.3.0 출시 시 업그레이드.
 
 ---
 
@@ -95,7 +113,7 @@ pc: DESKTOP-A8ES4P0
 
 ## 4. 아직 안 한 것 ⏭️
 
-> 시스템은 사실상 완성(유지보수 단계). 코드 작업은 더 없고, 남은 건 **사용자 결정 2건**뿐이다.
+> 시스템은 사실상 완성(유지보수 단계). 사용자 결정 2건도 모두 해소됨(아래). 남은 건 **모니터링 1건**(Next.js 16.3.0 출시 시 postcss 취약점 패치 업그레이드)뿐.
 
 ### ✅ 사용자 결정 완료 (2026-06-13)
 
@@ -176,7 +194,8 @@ npm run dev
 
 ## 7. 알아두면 좋은 함정들 ⚠️
 
-- **카드가 안 보임** → 해당 repo에 `STATUS.md`가 푸시되었는지 확인. 토큰의 Repository access가 그 repo를 포함하는지 확인.
+- **pull/reset 직후 테스트·빌드가 깨짐** (`vitest`/`sanitize-html` 못 찾음 등) → 다른 PC에서 받은 `node_modules`가 옛 `package.json` 기준이라 새 의존성이 빠진 것. **pull·reset 받으면 `npm install` 먼저** 실행. (2026-06-26 실제 발생)
+- **카드가 안 보임** → 해당 repo에 `STATUS.md`가 푸시되었는지 확인. 토큰의 Repository access가 그 repo를 포함하는지 확인. (참고: 이제 403/5xx 같은 일시적 API 오류는 카드를 숨기지 않고 상단 에러 배너로 표시됨.)
 - **GitHub API 401/403** → 토큰 prefix 중복(`github_pat_github_pat_...`) 또는 권한 부족. `.env.local`의 값 자체를 먼저 의심.
 - **모두 빨강(방치)로 표시** → 마지막 커밋이 7일 넘은 것. push 하면 색 살아남.
 - **진행률 0%** → Front Matter `progress:` 숫자가 없고 체크리스트도 없을 때. 둘 중 하나는 있어야 함.
@@ -192,20 +211,29 @@ npm run dev
 project-dashboard/
 ├─ app/
 │  ├─ layout.tsx        ✅ PWA 메타 + SW 등록
-│  ├─ page.tsx          ✅ 대시보드 메인 + HelpDialog 배치
+│  ├─ page.tsx          ✅ 대시보드 메인 + 헤더 액션(새로고침·앱안내·도움말)
 │  ├─ HelpDialog.tsx    ✅ 도움말 버튼 + 모달 (client)
+│  ├─ GuideDialog.tsx   ✅ "📖 앱 안내" 모달 (client)
+│  ├─ RefreshButton.tsx ✅ 새로고침 버튼 (client) → Server Action
+│  ├─ actions.ts        ✅ Server Action (revalidateRoot)
+│  ├─ p/[repo]/page.tsx ✅ STATUS.md 본문 preview (마크다운 + XSS 새니타이즈)
 │  └─ globals.css       ✅
 ├─ lib/
-│  ├─ github.ts         ✅ /user/repos 폴백 + sanitize 단순화
-│  └─ parse.ts          ✅
+│  ├─ github.ts         ✅ /user/repos 폴백+페이지네이션, 404만 null·그외 전파
+│  ├─ github.test.ts    ✅ vitest (8개)
+│  ├─ parse.ts          ✅ getHealth/daysAgo export
+│  └─ parse.test.ts     ✅ vitest (15개)
+├─ proxy.ts             ✅ 배포본 Basic Auth 게이트 (DASH_PASSWORD)
+├─ vitest.config.ts     ✅
 ├─ public/              ✅ PWA 자산 (manifest + sw + 아이콘 3장)
 │  ├─ manifest.json
-│  ├─ sw.js
+│  ├─ sw.js             ✅ '/' 비공개 화면은 캐시 제외 (v2)
 │  ├─ icon-192.png
 │  ├─ icon-512.png
 │  └─ apple-touch-icon.png
 ├─ templates/
 │  └─ STATUS.template.md
+├─ .github/workflows/   ✅ CI (npm test + tsc)
 ├─ docs/                ⚪ 비어있음
 ├─ .env.local.example   ✅
 ├─ .env.local           ✅ 새 토큰 + TARGET_REPOS 비움(자동 스캔)
@@ -219,4 +247,4 @@ project-dashboard/
 
 ## 9. 한 줄 요약 🎯
 
-> 대시보드는 production 작동 중 + PWA 설치 가능 + parse.ts 단위 테스트 완비. 코드 작업은 사실상 종료(유지보수 단계). 남은 건 사용자 결정 2건(repo 공개 여부 / DASH_PASSWORD 환경 스코프)뿐.
+> 대시보드는 production 작동 중 + PWA 설치 가능 + 단위 테스트 23개·CI 완비 + Basic Auth 게이트. 사용자 결정 2건도 모두 해소(repo public 전환 / DASH_PASSWORD All Environments). 코드 작업은 사실상 종료(유지보수 단계). 2026-06-26 자기점검으로 API 오류 처리·SW 캐시·preview 색·strict 정합 4건 개선. 남은 건 모니터링 1건(Next.js 16.3.0 출시 시 postcss 취약점 패치 업그레이드)뿐.
