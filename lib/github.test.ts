@@ -12,6 +12,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // ── 가짜 fetch 응답 빌더 ──
 const ok = (data: unknown) => ({ ok: true, status: 200, json: async () => data });
 const notFound = () => ({ ok: false, status: 404, json: async () => ({}) });
+// 403(rate limit)·5xx 같은 일시적 오류 응답
+const errorResp = (status: number) => ({ ok: false, status, json: async () => ({}) });
 // GitHub contents API는 파일을 base64로 준다.
 const contentResp = (text: string) =>
   ok({ content: Buffer.from(text, "utf-8").toString("base64") });
@@ -103,6 +105,30 @@ describe("fetchAllProjects", () => {
       String(u).includes("/user/repos")
     );
     expect(calledUserRepos).toBe(true);
+  });
+
+  it("STATUS.md 조회가 404가 아닌 오류(403 rate limit)면 삼키지 않고 던진다", async () => {
+    // 일시적 장애가 "STATUS.md 없음"으로 둔갑해 프로젝트가 조용히 사라지면 안 된다.
+    vi.stubEnv("TARGET_REPOS", "alpha");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url.includes("/alpha/contents/STATUS.md")) return errorResp(403);
+        if (url.includes("/alpha/commits")) return commitsResp("2026-06-10T00:00:00Z");
+        return notFound();
+      })
+    );
+    const { fetchAllProjects } = await loadGithub();
+    await expect(fetchAllProjects()).rejects.toThrow(/403/);
+  });
+
+  it("STATUS.md가 404면(진짜 없음) 던지지 않고 그 repo만 제외한다", async () => {
+    // 404는 정상 케이스 — beta(404)는 빠지고 alpha는 남아야 한다.
+    vi.stubEnv("TARGET_REPOS", "alpha, beta");
+    installDefaultFetch();
+    const { fetchAllProjects } = await loadGithub();
+    const projects = await fetchAllProjects();
+    expect(projects.map((p) => p.repo)).toEqual(["alpha"]);
   });
 
   it("repo 목록이 비면 빈 배열을 돌려준다", async () => {

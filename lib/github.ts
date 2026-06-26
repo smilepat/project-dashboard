@@ -8,6 +8,19 @@
 
 const GITHUB_API = "https://api.github.com";
 
+// GitHub API 오류에 HTTP 상태 코드를 함께 실어 나르는 에러 타입.
+// 호출부에서 "404(파일이 정말 없음)"과 "그 외 오류(403 rate limit·5xx 등)"를
+// 구분하기 위해 사용한다. 이게 없으면 모든 오류가 똑같이 취급돼,
+// 일시적 장애가 "STATUS.md 없음"으로 둔갑해 프로젝트가 화면에서 조용히 사라진다.
+class GitHubError extends Error {
+  status: number;
+  constructor(status: number, path: string) {
+    super(`GitHub API 오류 ${status}: ${path}`);
+    this.name = "GitHubError";
+    this.status = status;
+  }
+}
+
 // repo가 많을 때 GitHub API에 동시 요청이 폭주(secondary rate limit/abuse 차단)
 // 하지 않도록 동시 처리 개수를 제한하는 작업 풀. 외부 의존성 없이 구현.
 async function mapLimit<T, R>(
@@ -45,7 +58,7 @@ async function gh(path: string) {
     next: { revalidate: 3600 },
   });
   if (!res.ok) {
-    throw new Error(`GitHub API 오류 ${res.status}: ${path}`);
+    throw new GitHubError(res.status, path);
   }
   return res.json();
 }
@@ -77,18 +90,25 @@ async function getTargetRepoNames(): Promise<string[]> {
   return names;
 }
 
-// repo 하나의 STATUS.md 내용을 가져온다. 없으면 null.
+// repo 하나의 STATUS.md 내용을 가져온다. 파일이 없으면(404) null.
+// ⚠️ 403(rate limit)·5xx 같은 일시적 오류는 null로 삼키지 않고 위로 던진다.
+//    삼키면 "STATUS.md 없음"과 구분되지 않아 프로젝트가 화면에서 조용히 사라진다.
 async function getStatusFile(repo: string): Promise<string | null> {
   try {
     const data = await gh(`/repos/${USERNAME}/${repo}/contents/STATUS.md`);
     // GitHub은 파일 내용을 base64로 인코딩해서 준다 → 원래 글자로 디코딩
     return Buffer.from(data.content, "base64").toString("utf-8");
-  } catch {
-    return null; // STATUS.md가 없는 repo는 건너뜀
+  } catch (e) {
+    // 404 = STATUS.md가 정말 없는 repo → 정상적으로 건너뜀
+    if (e instanceof GitHubError && e.status === 404) return null;
+    // 그 외 오류(rate limit·서버 장애 등)는 page.tsx 에러 배너에 드러나도록 전파
+    throw e;
   }
 }
 
 // repo 하나의 가장 최근 커밋 날짜(ISO 문자열)를 가져온다.
+// 커밋 날짜는 보조 정보(신호등 색·"N일 전")일 뿐이라, 못 가져와도
+// 프로젝트를 숨기지 않는다. 어떤 오류든 null → 카드는 "기록 없음"으로 표시.
 async function getLastCommitDate(repo: string): Promise<string | null> {
   try {
     const commits = await gh(`/repos/${USERNAME}/${repo}/commits?per_page=1`);

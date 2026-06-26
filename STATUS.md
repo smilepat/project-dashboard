@@ -2,8 +2,8 @@
 project: project-dashboard
 status: active
 progress: 99
-updated: 2026-06-13
-pc: DESKTOP-A8ES4P0
+updated: 2026-06-26
+pc: DESKTOP-J5NGRMC
 ---
 
 # project-dashboard — STATUS
@@ -46,6 +46,7 @@ pc: DESKTOP-A8ES4P0
 - [x] `lib/parse.ts` 단위 테스트 추가 (vitest, 2026-06-13)
 - [x] `lib/github.ts` 단위 테스트 추가 (fetch mock, 6 케이스) + GitHub Actions CI(`npm test` + `tsc`) + proxy.ts timing-safe 비교 + CI 액션 v5 (2026-06-13)
 - [x] 헤더 "📖 앱 안내" 버튼/모달 추가 (GuideDialog) — 앱 개요·작동 방식·사용자 가이드. Playwright로 렌더 검증 (2026-06-13)
+- [x] github.ts API 오류 처리 개선 (2026-06-26): 404만 null 처리, 403(rate limit)·5xx는 전파 → 일시 장애 때 프로젝트가 카드에서 조용히 사라지던 버그 수정. 회귀 방지 테스트 2개 추가(총 23개 통과)
 
 ## ⏭️ 다음에 할 일 (Next Actions)
 
