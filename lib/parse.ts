@@ -29,15 +29,16 @@ export type Project = {
   url: string;
 };
 
-// 두 날짜 사이가 며칠인지 계산
-function daysAgo(iso: string | null): number | null {
+// 두 날짜 사이가 며칠인지 계산. preview 페이지에서도 재사용하도록 export.
+export function daysAgo(iso: string | null): number | null {
   if (!iso) return null;
   const diff = Date.now() - new Date(iso).getTime();
   return Math.floor(diff / (1000 * 60 * 60 * 24));
 }
 
-// 방치 일수 + 상태로 신호등 색 결정
-function getHealth(days: number | null, status: string): Health {
+// 방치 일수 + 상태로 신호등 색 결정.
+// 메인 카드(page.tsx)와 preview 페이지(/p/[repo])가 같은 기준을 쓰도록 export.
+export function getHealth(days: number | null, status: string): Health {
   if (status === "done") return "green";
   if (status === "paused") return "yellow";
   if (days === null) return "yellow";

@@ -153,8 +153,9 @@ export default async function Page() {
   try {
     const raws = await fetchAllProjects();
     projects = parseAll(raws);
-  } catch (e: any) {
-    error = e.message ?? "데이터를 불러오지 못했습니다.";
+  } catch (e: unknown) {
+    // strict 모드 권장: any 대신 unknown으로 받고 Error인지 좁혀서 메시지 추출
+    error = e instanceof Error ? e.message : "데이터를 불러오지 못했습니다.";
   }
 
   return (

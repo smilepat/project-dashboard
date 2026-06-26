@@ -47,6 +47,10 @@ pc: DESKTOP-J5NGRMC
 - [x] `lib/github.ts` 단위 테스트 추가 (fetch mock, 6 케이스) + GitHub Actions CI(`npm test` + `tsc`) + proxy.ts timing-safe 비교 + CI 액션 v5 (2026-06-13)
 - [x] 헤더 "📖 앱 안내" 버튼/모달 추가 (GuideDialog) — 앱 개요·작동 방식·사용자 가이드. Playwright로 렌더 검증 (2026-06-13)
 - [x] github.ts API 오류 처리 개선 (2026-06-26): 404만 null 처리, 403(rate limit)·5xx는 전파 → 일시 장애 때 프로젝트가 카드에서 조용히 사라지던 버그 수정. 회귀 방지 테스트 2개 추가(총 23개 통과)
+- [x] sw.js: 인증된 비공개 화면('/' navigation)을 프리캐시·런타임 캐시에서 제외 (CACHE v1→v2). 공유 PC 캐시본 노출 방지 (2026-06-26)
+- [x] preview 페이지(/p/[repo]) 신호등 색을 메인 카드와 동일 기준(getHealth/커밋 최신성)으로 통일 → parse.ts의 getHealth/daysAgo export (2026-06-26)
+- [x] page.tsx catch (e: any) → unknown + Error 좁히기 (strict 모드 정합) (2026-06-26)
+- [ ] (모니터링) Next.js postcss 취약점(GHSA-qx2v-qp2m-jg93): 안정판 패치(16.3.0+) 미출시 → 출시 시 next 업그레이드. 빌드 도구 한정이라 런타임 위험 낮음
 
 ## ⏭️ 다음에 할 일 (Next Actions)
 

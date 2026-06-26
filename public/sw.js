@@ -9,9 +9,14 @@
 //   - 인터넷 되면 항상 최신 데이터, 안 되면 캐시로 fallback.
 // ─────────────────────────────────────────────────────────────
 
-const CACHE_NAME = 'project-dashboard-v1';
+// 캐시 버전을 올리면 activate 단계에서 옛 캐시를 통째로 지운다.
+// v1 → v2: 비공개 화면('/')을 프리캐시 목록에서 제외하면서 버전업
+// (기존 사용자 기기에 남아 있던 '/' 캐시본도 함께 정리되도록).
+const CACHE_NAME = 'project-dashboard-v2';
+// 프리캐시는 '공개 정적 자산'만 둔다.
+// '/'(대시보드 HTML)는 private repo 데이터를 담고 Basic Auth로 보호되는 화면이라
+// 기기 캐시에 저장하지 않는다(공유 PC에서 캐시본 노출 방지).
 const STATIC_ASSETS = [
-  '/',
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
@@ -45,11 +50,16 @@ self.addEventListener('fetch', (event) => {
   // GitHub API 호출은 캐싱하지 않음 (항상 최신 데이터 필요)
   if (event.request.url.includes('api.github.com')) return;
 
+  // 페이지 HTML(navigation 요청)은 캐시에 저장하지 않는다.
+  // 대시보드 화면은 private repo 데이터를 담고 Basic Auth로 보호되므로,
+  // 기기 캐시에 남기면 공유 PC에서 노출될 수 있다. 정적 자산만 캐시한다.
+  const isPageNavigation = event.request.mode === 'navigate';
+
   event.respondWith(
     fetch(event.request)
       .then((res) => {
-        // 성공 응답이면 캐시에 복사본 저장
-        if (res.ok && res.status === 200) {
+        // 성공한 '정적 자산' 응답만 캐시에 복사본 저장(HTML 페이지는 제외)
+        if (res.ok && res.status === 200 && !isPageNavigation) {
           const clone = res.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, clone).catch(() => {}); // 일부 요청 타입은 캐시 불가

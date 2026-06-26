@@ -12,6 +12,7 @@ import { marked } from 'marked';
 import sanitizeHtml from 'sanitize-html';
 import matter from 'gray-matter';
 import { fetchProjectStatus } from '@/lib/github';
+import { getHealth, daysAgo, Health } from '@/lib/parse';
 
 // 1시간(3600초) ISR — 첫 페이지(/)와 같은 캐시 주기
 export const revalidate = 3600;
@@ -89,8 +90,17 @@ export default async function PreviewPage({ params }: Props) {
       ? fm.progress
       : Number(fmText(fm.progress)) || 0;
   const statusStr = fmText(fm.status);
-  const statusColor =
-    statusStr === 'done' ? COLOR.green : statusStr === 'paused' ? COLOR.yellow : COLOR.green;
+  // 헤더 좌측 막대 색을 메인 카드(page.tsx)와 동일한 신호등 기준으로 계산.
+  // 기존엔 active면 방치돼도 항상 초록이라 카드 색과 불일치했음.
+  // getHealth: done→초록, paused→노랑, 그 외엔 커밋 경과일(3·7일)로 초록/노랑/빨강.
+  const days = daysAgo(raw.lastCommit);
+  const health = getHealth(days, statusStr || 'active');
+  const HEALTH_COLOR: Record<Health, string> = {
+    green: COLOR.green,
+    yellow: COLOR.yellow,
+    red: COLOR.red,
+  };
+  const statusColor = HEALTH_COLOR[health];
 
   return (
     <main style={{ maxWidth: 860, margin: '0 auto', padding: '32px 24px 64px' }}>
