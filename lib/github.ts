@@ -142,6 +142,36 @@ export async function fetchProjectStatus(repo: string): Promise<RawProject> {
   };
 }
 
+// ── repo-ops-system 다이제스트 ──
+// smilepat/repo-ops-system 이 매일 커밋하는 registry/digest.json 을 읽어온다.
+// (전체 레포 모멘텀 분류 + 적신호 + PC별 미저장 작업의 단일 산출물)
+// 같은 owner(smilepat) 소유 private repo → 기존 토큰으로 접근. 1시간 ISR.
+export type Digest = {
+  generatedAt?: string;
+  enriched?: boolean;
+  enrichedCount?: number;
+  counts?: Record<string, number>;
+  active?: DigestRepo[];
+  cooling?: DigestRepo[];
+  stale_with_intent?: DigestRepo[];
+  redFlags?: { type: string; repo: string; url?: string; host?: string; detail: string }[];
+  machines?: {
+    hostname: string; scannedAt?: string; ageHours?: number; stale?: boolean;
+    dirtyRepoCount?: number;
+    repos?: { name: string; full_name?: string; branch?: string; dirty?: number; ahead?: number; behind?: number; subject?: string }[];
+  }[];
+};
+export type DigestRepo = {
+  full_name: string; url?: string; domain?: string; age?: number;
+  action?: string; openPRs?: number; openIssues?: number; handoffDone?: boolean; next?: string;
+};
+
+export async function fetchDigest(): Promise<Digest> {
+  const data = await gh(`/repos/${USERNAME}/repo-ops-system/contents/registry/digest.json?ref=main`);
+  const json = Buffer.from(data.content, "base64").toString("utf-8");
+  return JSON.parse(json) as Digest;
+}
+
 // ── 메인 함수 ──
 // 모든 대상 repo의 raw 데이터를 한꺼번에 모아서 돌려준다.
 export async function fetchAllProjects(): Promise<RawProject[]> {

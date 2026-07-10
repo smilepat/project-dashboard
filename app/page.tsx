@@ -176,8 +176,17 @@ export default async function Page() {
             진행 중인 프로젝트 {projects.length}개 · 방치된 순으로 정렬
           </p>
         </div>
-        {/* 헤더 우측 액션 — 새로고침 + 도움말 */}
+        {/* 헤더 우측 액션 — 다이제스트 + 새로고침 + 도움말 */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <Link
+            href="/digest"
+            style={{
+              fontSize: 13, fontWeight: 600, color: "#ffffff", background: "#3d3d3a",
+              padding: "8px 14px", borderRadius: 8, textDecoration: "none",
+            }}
+          >
+            📋 다이제스트
+          </Link>
           <RefreshButton />
           <GuideDialog />
           <HelpDialog />
