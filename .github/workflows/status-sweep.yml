@@ -1,0 +1,42 @@
+name: STATUS.md sweep
+
+# 대시보드는 "루트에 STATUS.md가 있는 repo"만 카드로 그린다.
+# v0.dev·Replit import·GitHub 웹에서 만든 새 repo는 로컬 템플릿이나
+# Claude Code 세션을 안 거치므로 STATUS.md가 없어 영영 안 뜬다.
+# 그 구멍을 매주 자동으로 메운다.
+#
+# ⚠️ 기본 GITHUB_TOKEN 은 이 repo 밖으로 쓸 수 없다.
+#    다른 repo에 커밋하려면 repo 스코프 PAT를 시크릿으로 등록해야 한다:
+#      Settings → Secrets and variables → Actions → New repository secret
+#      이름: REPO_SWEEP_TOKEN
+on:
+  schedule:
+    - cron: "0 0 * * 1" # 매주 월요일 09:00 KST (UTC 00:00)
+  workflow_dispatch: # 수동 실행 (먼저 dry-run으로 확인 권장)
+    inputs:
+      dry_run:
+        description: "실제 커밋 없이 대상만 확인"
+        type: boolean
+        default: true
+      active_days:
+        description: "최근 며칠 이내 push된 repo만 대상"
+        default: "30"
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Sweep repos missing STATUS.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPO_SWEEP_TOKEN }}
+          GH_OWNER: smilepat
+          ACTIVE_DAYS: ${{ inputs.active_days || '30' }}
+          # 스케줄 실행은 실제 커밋, 수동 실행은 입력값에 따름
+          DRY_RUN: ${{ inputs.dry_run == true && '1' || '' }}
+        run: python scripts/sweep-status.py
