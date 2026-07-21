@@ -72,12 +72,27 @@ function Card({ p }: { p: Project }) {
         }}
       >
         {/* 윗줄: 프로젝트명 + 신호등 배지 */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ fontSize: 18, fontWeight: 600, margin: 0 }}>{p.name}</h2>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 600, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</h2>
+            {/* 스윕이 만든 미작성 stub — 커밋일 기준 초록으로 떠도 알맹이가 없음을 표시 */}
+            {p.isStub && (
+              <span
+                title="스윕이 자동 생성한 미작성 카드 — STATUS.md를 실제 내용으로 채우면 사라집니다"
+                style={{
+                  fontSize: 11, fontWeight: 600, color: "#8a7a2e",
+                  background: "#f4efdb", padding: "3px 8px", borderRadius: 999,
+                  whiteSpace: "nowrap", flexShrink: 0,
+                }}
+              >
+                🌱 미작성
+              </span>
+            )}
+          </div>
           <span
             style={{
               fontSize: 12, fontWeight: 600, color,
-              background: `${color}1a`, padding: "3px 10px", borderRadius: 999,
+              background: `${color}1a`, padding: "3px 10px", borderRadius: 999, flexShrink: 0,
             }}
           >
             {HEALTH_LABEL[p.health]}
@@ -158,6 +173,8 @@ export default async function Page() {
     error = e instanceof Error ? e.message : "데이터를 불러오지 못했습니다.";
   }
 
+  const stubCount = projects.filter((p) => p.isStub).length;
+
   return (
     <main style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px" }}>
       <header
@@ -173,7 +190,8 @@ export default async function Page() {
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>프로젝트 대시보드</h1>
           <p style={{ color: "#73726c", marginTop: 6, fontSize: 14 }}>
-            진행 중인 프로젝트 {projects.length}개 · 방치된 순으로 정렬
+            프로젝트 {projects.length}개
+            {stubCount > 0 && ` · 미작성 ${stubCount}개`} · 방치된 순으로 정렬
           </p>
         </div>
         {/* 헤더 우측 액션 — 다이제스트 + 새로고침 + 도움말 */}

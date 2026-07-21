@@ -73,6 +73,26 @@ def denied(name):
     return any(re.search(p, low) for p in DENY_PATTERNS)
 
 
+def die(msg):
+    """GitHub Actions 로그에 error 주석으로 남기고 종료 코드 1로 죽는다.
+    (스케줄 실행이 '초록(성공)'으로 조용히 아무 일도 안 하는 상태를 막는다.)"""
+    print(f"::error::{msg}")
+    sys.exit(1)
+
+
+def verify_auth():
+    """토큰이 실제로 유효한지 먼저 확인. 만료·무효면 여기서 빨강으로 죽는다.
+    이 검사가 없으면 만료된 PAT로도 list_repos가 빈 목록을 반환 → '생성 0'으로
+    성공 처리되어, 자동화가 멈춘 걸 아무도 모른다."""
+    st, data = api("GET", "/user")
+    if st != 200:
+        die(
+            f"GitHub 인증 실패 (HTTP {st}). REPO_SWEEP_TOKEN이 만료·무효일 수 있습니다. "
+            f"repo 스코프로 재발급 후 시크릿을 교체하세요. {data.get('err', '')}"
+        )
+    return data.get("login")
+
+
 def list_repos():
     """소유 repo 전체 (페이지네이션)."""
     out, page = [], 1
@@ -80,7 +100,11 @@ def list_repos():
         st, data = api(
             "GET", f"/user/repos?per_page=100&sort=pushed&affiliation=owner&page={page}"
         )
-        if st != 200 or not data:
+        # 인증은 verify_auth에서 이미 통과했으므로, 여기서의 non-200은
+        # rate limit·일시 장애 → 부분 목록으로 조용히 넘어가지 않고 죽는다.
+        if st != 200:
+            die(f"repo 목록 조회 실패 (page {page}, HTTP {st}). {data.get('err', '')}")
+        if not data:
             break
         out.extend(data)
         if len(data) < 100:
@@ -120,6 +144,9 @@ pc: {pc}
 
 
 def main():
+    login = verify_auth()  # 인증 먼저 — 실패하면 여기서 빨강으로 죽는다
+    print(f"인증 OK: {login} (owner={OWNER}, active_days={ACTIVE_DAYS}, dry_run={bool(DRY_RUN)})")
+
     cutoff = datetime.now(timezone.utc) - timedelta(days=ACTIVE_DAYS)
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     created, skipped, failed = [], 0, []

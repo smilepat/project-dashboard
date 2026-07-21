@@ -27,6 +27,7 @@ export type Project = {
   daysSinceCommit: number | null; // 마지막 커밋 후 며칠
   health: Health;
   url: string;
+  isStub: boolean;      // 스윕이 만든 미작성 stub인가 (실내용 입력 전)
 };
 
 // 두 날짜 사이가 며칠인지 계산. preview 페이지에서도 재사용하도록 export.
@@ -98,6 +99,12 @@ export function parseProject(raw: RawProject): Project {
   const days = daysAgo(raw.lastCommit);
   const status = String(data.status ?? "active");
 
+  // 스윕이 자동 생성한 "미작성" stub 판별.
+  // 커밋일 기준이면 방금 만든 stub이 초록(활발)으로 떠서 실제 방치 프로젝트를
+  // 가린다. 템플릿 고유 문구("실제 내용으로 채우기")가 남아 있으면 = 아직 사람이
+  // 내용을 채우지 않은 stub. 사용자가 체크리스트를 다시 쓰면 배지는 자동으로 사라진다.
+  const isStub = checklist.some((c) => c.text.includes("실제 내용으로 채우기"));
+
   return {
     name: String(data.project ?? raw.repo),
     repo: raw.repo,
@@ -111,6 +118,7 @@ export function parseProject(raw: RawProject): Project {
     daysSinceCommit: days,
     health: getHealth(days, status),
     url: raw.url,
+    isStub,
   };
 }
 
