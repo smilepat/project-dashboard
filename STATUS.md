@@ -22,6 +22,14 @@ pc: DESKTOP-JDF6C5D
 - [x] 노이즈 정리: `dev-workflow`·`lumina-bridge-english-level1` STATUS.md 삭제 + DENY_PATTERNS에 추가
 - [x] **교훈**: 반영은 `vercel redeploy`(낡은 빌드 재사용) 금지 → **master push로 fresh 빌드**. 최종 카드 67장 실측 확인
 
+### 후속 개선 (같은 날, 검증 후 적용)
+
+- [x] **① 스윕 fail-loud**: `verify_auth()`로 시작 시 인증 검증 → PAT 만료·무효면 `::error::` + exit 1(Actions 빨강). 기존엔 만료돼도 "생성 0"으로 조용히 성공하던 문제
+- [x] **③ 미작성 stub 시각화**: `Project.isStub`(템플릿 문구 잔존 판별) → 카드 🌱 미작성 배지 + 헤더 "미작성 N개". 커밋일 기준 초록으로 떠 실제 방치를 가리던 신호 희석 완화
+- [x] **④ 필터 칩**: 카드 그리드를 클라이언트 컴포넌트 `app/ProjectGrid.tsx`로 분리 + 전체/작성됨/방치/미작성/완료 필터(개수 표시). page.tsx는 서버 페치만 유지(토큰 미노출)
+- [x] **PAT 만료 선제 알림**: 스윕이 만료일 헤더를 읽어 D-14 이내면 `project-dashboard`에 알림 이슈 자동 생성(@owner 멘션). 실측: REPO_SWEEP_TOKEN 만료 2027-07-20(D-364) 확인
+- [x] 검증: typecheck OK · 23 tests pass · next build 프리렌더 성공 · CI success · Actions dry-run success
+
 ## 🔒 2026-06-01 보안·품질 개선 (검증 후 적용)
 
 - [x] preview 페이지 마크다운 XSS 새니타이즈 (`sanitize-html`) — script/onerror/javascript: 차단, 체크박스 유지
