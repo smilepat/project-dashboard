@@ -2,15 +2,25 @@
 project: project-dashboard
 status: active
 progress: 99
-updated: 2026-06-26
-pc: DESKTOP-J5NGRMC
+updated: 2026-07-21
+pc: DESKTOP-JDF6C5D
 ---
 
 # project-dashboard — STATUS
 
 ## 🎯 한 줄 상태
 
-대시보드 production 작동 + PWA + 보안(인증 게이트·XSS·동시성) 완료. 글로벌 CLAUDE.md 규칙으로 전 프로젝트 STATUS.md 자동 관리 + 실제 repo 시딩 완료. parse.ts 단위 테스트(vitest)·pc 자동 hostname 규칙까지 적용. 유지보수 단계 — 남은 건 사용자 결정 2건(repo 공개 / DASH_PASSWORD 스코프)뿐.
+대시보드 production 작동 + PWA + 보안 완료. 2026-07-21: "새 앱이 대시보드에 안 뜬다" 문제 해결 — TARGET_REPOS 고정 목록 제거(자동 스캔 복구)·활성 repo에 STATUS.md 일괄 생성(9→67장)·주간 자동 스윕(scripts/sweep-status.py + status-sweep.yml) 구축. 카드 9 → **67장**.
+
+## 🆕 2026-07-21 "새 앱 자동 추적" 작업 (완료)
+
+- [x] **원인 규명**: 카드가 9개로 고정된 원인 = Vercel `TARGET_REPOS` 환경변수(Development 22개 고정 목록) + `vercel redeploy`의 낡은 빌드 재사용. 코드·토큰·데이터는 정상이었음
+- [x] `TARGET_REPOS` 제거 (Development·Production 양쪽) → 소유 repo 전체 자동 스캔 복구
+- [x] 활성 repo에 STATUS.md 일괄 생성 (GitHub Contents API, 초기 31장 + 스윕 백로그 10장)
+- [x] **주간 자동 스윕** 구축: `scripts/sweep-status.py`(최근 push·archived/fork 제외·deny 패턴·기존 파일 미덮어쓰기) + `.github/workflows/status-sweep.yml`(매주 월 09:00 KST, workflow_dispatch dry-run)
+- [x] Actions용 `REPO_SWEEP_TOKEN`(repo 스코프 PAT) 등록 → 비공개 199개 전부 스캔 검증(생성 10/건너뜀 189)
+- [x] 노이즈 정리: `dev-workflow`·`lumina-bridge-english-level1` STATUS.md 삭제 + DENY_PATTERNS에 추가
+- [x] **교훈**: 반영은 `vercel redeploy`(낡은 빌드 재사용) 금지 → **master push로 fresh 빌드**. 최종 카드 67장 실측 확인
 
 ## 🔒 2026-06-01 보안·품질 개선 (검증 후 적용)
 
@@ -54,8 +64,9 @@ pc: DESKTOP-J5NGRMC
 
 ## ⏭️ 다음에 할 일 (Next Actions)
 
-- 시스템 완성 + 결정 사항 모두 해소. 유지보수 단계 — 별도 예정 작업 없음.
-- 신규 프로젝트는 글로벌 규칙이 STATUS.md를 자동 생성·갱신하므로 별도 작업 불필요.
+- 유지보수 단계 — 별도 예정 작업 없음. 신규 프로젝트는 글로벌 규칙 + 주간 스윕이 STATUS.md를 자동 관리.
+- (선택) 자동 생성분 STATUS.md는 progress:0(stale 카드) → 각 repo 작업 시 실제 내용으로 채우면 정상화.
+- (주의) 대시보드 반영은 반드시 **master push**(fresh 빌드). `vercel redeploy`는 낡은 빌드를 재사용하므로 변경이 안 보임.
 
 ## ✅ 결정 완료 (2026-06-13)
 

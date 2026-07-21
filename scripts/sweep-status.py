@@ -41,6 +41,8 @@ DENY_PATTERNS = [
     r"^test", r"test\d*$", r"^tictactoe$", r"-lecture$", r"^github-",
     r"^git-adventure$", r"^love-text$", r"^manga-", r"^claude-design$",
     r"^push-diary$",  # 일지 저장소(프로젝트 아님)
+    r"^dev-workflow$",  # 멀티 PC 작업 지침 문서(앱 아님)
+    r"^lumina-bridge",  # 발표 슬라이드 덱(앱 아님)
 ]
 
 if not TOKEN:
