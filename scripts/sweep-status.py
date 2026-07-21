@@ -36,6 +36,11 @@ OWNER = os.environ.get("GH_OWNER", "smilepat")
 ACTIVE_DAYS = int(os.environ.get("ACTIVE_DAYS", "30"))
 DRY_RUN = os.environ.get("DRY_RUN", "") == "1"
 
+# PAT 만료 선제 경고: 만료 D-day가 이 값 이하로 떨어지면 알림 이슈를 연다.
+WARN_DAYS = int(os.environ.get("EXPIRE_WARN_DAYS", "14"))
+# 만료 알림 이슈를 열 repo. Actions에선 GITHUB_REPOSITORY(=owner/repo)가 채워진다.
+ALERT_REPO = os.environ.get("GITHUB_REPOSITORY") or f"{OWNER}/project-dashboard"
+
 # 습작·연습·데모성 repo는 대시보드에 올리지 않는다.
 DENY_PATTERNS = [
     r"^test", r"test\d*$", r"^tictactoe$", r"-lecture$", r"^github-",
@@ -83,14 +88,82 @@ def die(msg):
 def verify_auth():
     """토큰이 실제로 유효한지 먼저 확인. 만료·무효면 여기서 빨강으로 죽는다.
     이 검사가 없으면 만료된 PAT로도 list_repos가 빈 목록을 반환 → '생성 0'으로
-    성공 처리되어, 자동화가 멈춘 걸 아무도 모른다."""
-    st, data = api("GET", "/user")
-    if st != 200:
+    성공 처리되어, 자동화가 멈춘 걸 아무도 모른다.
+    성공 시 (login, 만료일 헤더값)을 돌려준다. PAT에 만료가 있으면 GitHub이
+    'github-authentication-token-expiration' 헤더로 알려준다(없으면 무만료)."""
+    req = urllib.request.Request(
+        "https://api.github.com/user",
+        headers={
+            "Authorization": f"Bearer {TOKEN}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req) as r:
+            login = json.loads(r.read() or b"{}").get("login")
+            expiry = r.headers.get("github-authentication-token-expiration")
+            return login, expiry
+    except urllib.error.HTTPError as e:
         die(
-            f"GitHub 인증 실패 (HTTP {st}). REPO_SWEEP_TOKEN이 만료·무효일 수 있습니다. "
-            f"repo 스코프로 재발급 후 시크릿을 교체하세요. {data.get('err', '')}"
+            f"GitHub 인증 실패 (HTTP {e.code}). REPO_SWEEP_TOKEN이 만료·무효일 수 있습니다. "
+            f"repo 스코프로 재발급 후 시크릿을 교체하세요. {e.read().decode()[:150]}"
         )
-    return data.get("login")
+
+
+def open_expiry_issue(exp_date, days_left):
+    """만료 임박 시 ALERT_REPO에 알림 이슈를 연다(중복 방지). 아직 유효한 토큰으로
+    열기 때문에 확실히 전달된다. @멘션으로 소유자에게 이메일/벨 알림이 간다."""
+    marker = "[status-sweep] PAT 만료 임박"
+    st, issues = api("GET", f"/repos/{ALERT_REPO}/issues?state=open&per_page=100")
+    if st == 200 and any(
+        marker in (i.get("title", "")) for i in issues if "pull_request" not in i
+    ):
+        print("이미 만료 알림 이슈가 열려 있음 — 중복 생성 안 함")
+        return
+    body = (
+        f"@{OWNER} GitHub Actions 시크릿 `REPO_SWEEP_TOKEN` 이 **{exp_date}** 에 "
+        f"만료됩니다 (D-{days_left}).\n\n"
+        "만료되면 매주 월요일 STATUS.md 스윕(새 앱 자동 등록)이 멈춥니다.\n\n"
+        "### 재발급 방법\n"
+        "1. <https://github.com/settings/tokens> → **Generate new token (classic)**, "
+        "`repo` 스코프 체크\n"
+        "2. `gh secret set REPO_SWEEP_TOKEN` 으로 값 교체\n"
+        "3. 이 이슈를 닫으세요.\n\n"
+        "_이 이슈는 스윕이 만료 14일 전 자동으로 생성했습니다._"
+    )
+    st, res = api(
+        "POST",
+        f"/repos/{ALERT_REPO}/issues",
+        {"title": f"⚠️ {marker} — REPO_SWEEP_TOKEN 재발급 필요 (D-{days_left})", "body": body},
+    )
+    if st in (200, 201):
+        print(f"만료 알림 이슈 생성: {res.get('html_url', '')}")
+    else:
+        # 이슈 쓰기 권한이 없어도(예: Contents 전용 fine-grained) 스윕은 계속.
+        print(f"::warning::만료 알림 이슈 생성 실패 (HTTP {st}). {res.get('err', '')[:120]}")
+
+
+def handle_expiry(expiry):
+    """만료일 헤더값을 받아 D-day를 계산하고, 임박하면 경고+이슈. 무만료면 통과."""
+    if not expiry:
+        print("토큰 만료: 없음(무만료 토큰)")
+        return
+    try:
+        exp_dt = datetime.strptime(
+            expiry.strip().replace(" UTC", ""), "%Y-%m-%d %H:%M:%S"
+        ).replace(tzinfo=timezone.utc)
+    except ValueError:
+        print(f"토큰 만료 헤더 파싱 실패: {expiry!r}")
+        return
+    days_left = (exp_dt - datetime.now(timezone.utc)).days
+    print(f"토큰 만료: {exp_dt.date()} (D-{days_left})")
+    if days_left <= WARN_DAYS:
+        print(f"::warning::REPO_SWEEP_TOKEN이 {days_left}일 후 만료됩니다({exp_dt.date()}). 재발급 필요.")
+        if DRY_RUN:
+            print("[dry-run] 만료 알림 이슈 생성 생략")
+        else:
+            open_expiry_issue(exp_dt.date(), days_left)
 
 
 def list_repos():
@@ -144,8 +217,9 @@ pc: {pc}
 
 
 def main():
-    login = verify_auth()  # 인증 먼저 — 실패하면 여기서 빨강으로 죽는다
+    login, expiry = verify_auth()  # 인증 먼저 — 실패하면 여기서 빨강으로 죽는다
     print(f"인증 OK: {login} (owner={OWNER}, active_days={ACTIVE_DAYS}, dry_run={bool(DRY_RUN)})")
+    handle_expiry(expiry)  # 만료 임박하면 선제 경고 + 알림 이슈
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=ACTIVE_DAYS)
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
