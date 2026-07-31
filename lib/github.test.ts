@@ -178,18 +178,46 @@ describe("fetchAllProjects — digest 연동", () => {
   const calledUserRepos = (m: ReturnType<typeof vi.fn>) =>
     m.mock.calls.some(([u]) => String(u).includes("/user/repos"));
 
-  it("digest가 있으면 active+cooling+stale_with_intent만 대상으로 쓰고 전체 스캔은 안 한다", async () => {
+  it("기본값은 active 뿐 — cooling·stale·parked는 카드가 되지 않는다", async () => {
+    // cooling 을 넣으면 축소 효과가 사라진다(실측: active 19장 vs +cooling 59장).
     const fetchMock = installFetch({
       active: [{ full_name: "tester/alpha" }],
       cooling: [{ full_name: "tester/gamma" }],
-      stale_with_intent: [],
-      parked: [{ full_name: "tester/parked-one" }], // parked는 제외되어야 한다
+      stale_with_intent: [{ full_name: "tester/gamma" }],
+      parked: [{ full_name: "tester/parked-one" }],
     });
     const { fetchAllProjects } = await loadGithub();
     const projects = await fetchAllProjects();
 
-    expect(projects.map((p) => p.repo).sort()).toEqual(["alpha", "gamma"]);
+    expect(projects.map((p) => p.repo)).toEqual(["alpha"]); // gamma 제외
     expect(calledUserRepos(fetchMock)).toBe(false);
+  });
+
+  it("DIGEST_BUCKETS로 범위를 넓힐 수 있다", async () => {
+    vi.stubEnv("DIGEST_BUCKETS", "active, cooling"); // 공백 포함 → trim 검증
+    installFetch({
+      active: [{ full_name: "tester/alpha" }],
+      cooling: [{ full_name: "tester/gamma" }],
+      stale_with_intent: [],
+    });
+    const { fetchAllProjects } = await loadGithub();
+    const projects = await fetchAllProjects();
+    expect(projects.map((p) => p.repo).sort()).toEqual(["alpha", "gamma"]);
+  });
+
+  it("DIGEST_BUCKETS에 유효한 값이 없으면 active로 되돌아간다", async () => {
+    // 오타로 빈 목록이 되면 대상 0건 → 폴백이 돌아 전체 스캔이 되는 함정을 막는다.
+    vi.stubEnv("DIGEST_BUCKETS", "activo, 쿨링");
+    const fetchMock = installFetch({
+      active: [{ full_name: "tester/alpha" }],
+      cooling: [{ full_name: "tester/gamma" }],
+      stale_with_intent: [],
+    });
+    const { fetchAllProjects } = await loadGithub();
+    const projects = await fetchAllProjects();
+
+    expect(projects.map((p) => p.repo)).toEqual(["alpha"]);
+    expect(calledUserRepos(fetchMock)).toBe(false); // 폴백이 돌지 않았다
   });
 
   it("digest에 타 owner repo가 섞이면 제외한다", async () => {

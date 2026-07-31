@@ -82,19 +82,35 @@ async function scanAllOwnedRepoNames(): Promise<string[]> {
   return names;
 }
 
-// digest 가 이미 내린 모멘텀 판정(active/cooling/stale_with_intent)을 대상 목록으로 쓴다.
+// digest 가 이미 내린 모멘텀 판정을 대상 목록으로 쓴다.
 // 소유한 repo 전체를 카드로 띄우면 "STATUS.md가 있다"는 이유만으로 76장이 상시 표시되고,
 // 그중 대부분이 방치 상태라 신호등이 항상 빨강 → 경고가 배경이 된다.
 // digest 는 매일 갱신되므로 카드 수가 사람이 정한 숫자가 아니라 자동 산출값이 된다.
-// parked(장기 보류)는 제외한다. 특정 repo를 반드시 보고 싶으면 TARGET_REPOS 로 덮어쓴다.
+//
+// 기본은 `active`(7일 내 push)만 — 대시보드가 답해야 할 질문은 "지금 뭘 하고 있는가"다.
+// 실측(2026-07-31): active 19장 / +cooling 59장 / +stale_with_intent 65장.
+// cooling 43건 중 40건이 STATUS.md를 갖고 있어, cooling 을 넣는 순간 축소 효과가 사라진다.
+// 범위를 넓히려면 DIGEST_BUCKETS 환경변수로. 특정 repo 고정은 TARGET_REPOS.
+const DIGEST_BUCKET_KEYS = ["active", "cooling", "stale_with_intent"] as const;
+type DigestBucketKey = (typeof DIGEST_BUCKET_KEYS)[number];
+
+function getDigestBuckets(): DigestBucketKey[] {
+  const raw = sanitize(process.env.DIGEST_BUCKETS);
+  if (!raw) return ["active"];
+  const picked = raw
+    .split(",")
+    .map((s) => sanitize(s))
+    .filter((s): s is DigestBucketKey =>
+      (DIGEST_BUCKET_KEYS as readonly string[]).includes(s)
+    );
+  // 오타로 전부 걸러지면 기본값으로 — 빈 목록이면 폴백이 돌아 전체 스캔이 된다.
+  return picked.length ? picked : ["active"];
+}
+
 async function getDigestRepoNames(): Promise<string[] | null> {
   try {
     const d = await fetchDigest();
-    const picked = [
-      ...(d.active ?? []),
-      ...(d.cooling ?? []),
-      ...(d.stale_with_intent ?? []),
-    ];
+    const picked = getDigestBuckets().flatMap((k) => d[k] ?? []);
     const names = picked
       .map((r) => String(r.full_name ?? ""))
       .filter((fn) => fn.startsWith(`${USERNAME}/`)) // 타 owner(Reasonofmoon 등)는 URL이 안 맞으므로 제외

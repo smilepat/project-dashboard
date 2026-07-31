@@ -13,47 +13,53 @@ pc: DESKTOP-JDF6C5D
 
 ---
 
-## 0. 🔴 지금 대기 중인 것 — digest 연동 (기본 OFF, 켜지 말 것)
+## 0. digest 연동 (2026-07-31 완료)
 
-**상태: 코드 완성 + 테스트 29개 통과 + 기본 비활성.** 켜는 스위치는 `USE_DIGEST_TARGETS=1`.
+카드 목록을 `repo-ops-system` 의 `registry/digest.json` 모멘텀 판정으로 좁힌다.
+**카드 76장 → 19장** (`active` = 7일 내 push).
 
-### 왜 만들었나
+### 왜
 
-카드는 `lib/github.ts` 한 줄로 결정된다 — `results.filter((p) => p.statusRaw !== null)`.
-즉 **카드 = 소유 repo 전체 ∩ 루트에 STATUS.md 존재**. 그래서 항상 **76장**이고,
-소유 repo 209개 중 활성 137개 · 최근 7일 push 22개라 **카드 76장 중 최소 54장(71%)이 상시 빨강**이다.
-상시 켜진 경고는 경고가 아니라 배경이 된다.
+카드는 `lib/github.ts` 한 줄로 결정됐다 — `results.filter((p) => p.statusRaw !== null)`.
+즉 **카드 = 소유 repo 전체 ∩ 루트에 STATUS.md 존재** → 항상 76장이고 대부분이 방치 상태라
+신호등이 상시 빨강이었다. 상시 켜진 경고는 경고가 아니라 배경이 된다.
+digest 는 매일 갱신되므로 카드 수가 **사람이 정한 숫자가 아니라 자동 산출값**이 된다.
 
-한편 `repo-ops-system` 의 `registry/digest.json` 은 이미 모멘텀 분류를 산출한다
-(`active` / `cooling` / `stale_with_intent` / `parked`). 카드 목록을 그 판정에 연결하면
-카드 수가 **사람이 정하는 숫자가 아니라 매일 자동 산출값**이 된다.
+### 환경변수
 
-### 왜 아직 끄고 두었나 (중요)
+| 변수 | 값 | 뜻 |
+|---|---|---|
+| `USE_DIGEST_TARGETS` | `1` | digest 연동 ON. 지우면 즉시 종전 동작(전체 스캔)으로 원복 |
+| `DIGEST_BUCKETS` | (비움) | 기본 `active`. 넓히려면 `active,cooling` |
+| `TARGET_REPOS` | (비움) | 있으면 digest보다 우선 — 특정 repo 고정용 |
 
-digest 분류는 `registry/repos.csv` 의 `pushed_at` 에 의존하는데, **CI 스캔 토큰
-(`SCAN_TOKEN_SMILEPAT`)이 소유 repo 209개 중 48개만 열거한다.** 나머지 151행은
-`scan-repos.mjs` 가 "보존"하면서 과거 `pushed_at` 이 그대로 얼어붙는다.
-실측 결과 smilepat 165행 중 **33행이 낡음(최대 207일)**.
+우선순위: `TARGET_REPOS` → (`USE_DIGEST_TARGETS=1`) digest → 소유 repo 전체 스캔.
+digest 조회 실패·대상 0건이면 **전체 스캔으로 폴백**(대시보드가 통째로 비면 안 됨).
 
-지금 켜면 카드가 **76 → 10장**으로 줄면서 **이틀 전 푸시한 `instant-english`·`EBS-demo`·
-`abc-english-framework` 가 사라진다.** (csv 상 각각 6/04, 6/11, 6/11로 얼어 있어 `parked` 분류)
+### 구간별 실측 (2026-07-31)
 
-### 켜는 절차
+| 구간 | 카드 |
+|---|---|
+| 전체 (종전) | 76장 |
+| **active** ← 채택 | **19장** |
+| active + cooling | 59장 |
+| active + cooling + stale_with_intent | 65장 |
 
-1. GitHub fine-grained 토큰을 **All repositories** 로 재발급 → repo secret
-   `SCAN_TOKEN_SMILEPAT` 교체 (repo-ops-system HANDOFF의 "사람이 해야 할 일" 참조)
-2. `gh workflow run digest.yml --repo smilepat/repo-ops-system`
-3. `registry/repos.csv` 의 `pushed_at` 이 GitHub 실제값과 맞는지 표본 확인
-4. Vercel 환경변수 `USE_DIGEST_TARGETS=1` 추가 → 재배포
-5. 카드 수와 목록 확인. 이상하면 환경변수만 지우면 즉시 원복
+`cooling` 43건 중 40건이 STATUS.md를 갖고 있어, cooling 을 넣으면 축소 효과가 사라진다.
 
-### 구현 메모
+### ⚠️ 이 작업에서 하루를 잡아먹은 함정
 
-- 우선순위: `TARGET_REPOS` → (`USE_DIGEST_TARGETS=1` 일 때) digest → 소유 repo 전체 스캔
-- digest 조회 실패·대상 0건이면 **전체 스캔으로 폴백** (대시보드가 통째로 비면 안 됨)
-- 타 owner(`Reasonofmoon/*` 등)는 제외 — URL을 `${USERNAME}/${repo}` 로 만들기 때문
-- 테스트 6개 추가(`lib/github.test.ts` → "digest 연동" describe): 대상 선택 / 타 owner 제외 /
-  404 폴백 / 0건 폴백 / TARGET_REPOS 우선 / **기본 OFF일 때 digest 조회 안 함**
+digest 분류의 근거는 `registry/repos.csv` 의 `pushed_at` 인데, **CI 스캔 토큰이
+private repo를 못 보고 있었다.** fine-grained 토큰은 `Repository access = All repositories`
+여도 **`Repository permissions` 를 하나도 주지 않으면 `/user/repos` 가 public 만 반환한다.**
+오류도 안 나고 워크플로도 성공으로 끝나서 원인이 안 보인다.
+
+- 증상: `SMILEPAT: 48 repos` (= public 48개와 정확히 일치), private 117행의 `pushed_at` 이
+  2026-06-13 에서 정지 → 활발한 repo가 `parked` 로 오분류
+- 해결: 토큰에 **Contents / Issues / Pull requests = Read-only** 부여
+  (Metadata 는 자동으로 Read-only 잠김)
+- 결과: `SMILEPAT: 216 repos`, smilepat 214행 **전부 실제값과 일치(불일치 0)**
+- **토큰 만료 시 같은 증상으로 조용히 되돌아간다** — 만료일 관리 필요
 
 ---
 
