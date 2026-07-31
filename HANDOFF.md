@@ -2,14 +2,58 @@
 project: project-dashboard
 status: active
 progress: 99
-updated: 2026-06-26
-pc: DESKTOP-J5NGRMC
+updated: 2026-07-31
+pc: DESKTOP-JDF6C5D
 ---
 
 # 🤝 Handoff Document — Project Dashboard
 
 > 다음 세션(또는 다른 PC)에서 이 문서를 먼저 읽고 이어서 작업하세요.
-> 최종 갱신: **2026-06-26**
+> 최종 갱신: **2026-07-31**
+
+---
+
+## 0. 🔴 지금 대기 중인 것 — digest 연동 (기본 OFF, 켜지 말 것)
+
+**상태: 코드 완성 + 테스트 29개 통과 + 기본 비활성.** 켜는 스위치는 `USE_DIGEST_TARGETS=1`.
+
+### 왜 만들었나
+
+카드는 `lib/github.ts` 한 줄로 결정된다 — `results.filter((p) => p.statusRaw !== null)`.
+즉 **카드 = 소유 repo 전체 ∩ 루트에 STATUS.md 존재**. 그래서 항상 **76장**이고,
+소유 repo 209개 중 활성 137개 · 최근 7일 push 22개라 **카드 76장 중 최소 54장(71%)이 상시 빨강**이다.
+상시 켜진 경고는 경고가 아니라 배경이 된다.
+
+한편 `repo-ops-system` 의 `registry/digest.json` 은 이미 모멘텀 분류를 산출한다
+(`active` / `cooling` / `stale_with_intent` / `parked`). 카드 목록을 그 판정에 연결하면
+카드 수가 **사람이 정하는 숫자가 아니라 매일 자동 산출값**이 된다.
+
+### 왜 아직 끄고 두었나 (중요)
+
+digest 분류는 `registry/repos.csv` 의 `pushed_at` 에 의존하는데, **CI 스캔 토큰
+(`SCAN_TOKEN_SMILEPAT`)이 소유 repo 209개 중 48개만 열거한다.** 나머지 151행은
+`scan-repos.mjs` 가 "보존"하면서 과거 `pushed_at` 이 그대로 얼어붙는다.
+실측 결과 smilepat 165행 중 **33행이 낡음(최대 207일)**.
+
+지금 켜면 카드가 **76 → 10장**으로 줄면서 **이틀 전 푸시한 `instant-english`·`EBS-demo`·
+`abc-english-framework` 가 사라진다.** (csv 상 각각 6/04, 6/11, 6/11로 얼어 있어 `parked` 분류)
+
+### 켜는 절차
+
+1. GitHub fine-grained 토큰을 **All repositories** 로 재발급 → repo secret
+   `SCAN_TOKEN_SMILEPAT` 교체 (repo-ops-system HANDOFF의 "사람이 해야 할 일" 참조)
+2. `gh workflow run digest.yml --repo smilepat/repo-ops-system`
+3. `registry/repos.csv` 의 `pushed_at` 이 GitHub 실제값과 맞는지 표본 확인
+4. Vercel 환경변수 `USE_DIGEST_TARGETS=1` 추가 → 재배포
+5. 카드 수와 목록 확인. 이상하면 환경변수만 지우면 즉시 원복
+
+### 구현 메모
+
+- 우선순위: `TARGET_REPOS` → (`USE_DIGEST_TARGETS=1` 일 때) digest → 소유 repo 전체 스캔
+- digest 조회 실패·대상 0건이면 **전체 스캔으로 폴백** (대시보드가 통째로 비면 안 됨)
+- 타 owner(`Reasonofmoon/*` 등)는 제외 — URL을 `${USERNAME}/${repo}` 로 만들기 때문
+- 테스트 6개 추가(`lib/github.test.ts` → "digest 연동" describe): 대상 선택 / 타 owner 제외 /
+  404 폴백 / 0건 폴백 / TARGET_REPOS 우선 / **기본 OFF일 때 digest 조회 안 함**
 
 ---
 

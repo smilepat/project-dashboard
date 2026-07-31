@@ -144,3 +144,115 @@ describe("fetchAllProjects", () => {
     expect(projects).toEqual([]);
   });
 });
+
+// ── digest 연동 (USE_DIGEST_TARGETS=1 일 때만) ──
+// 카드 목록을 "STATUS.md가 있는 소유 repo 전부"가 아니라 digest의 모멘텀 판정
+// (active/cooling/stale_with_intent)으로 좁힌다. parked는 카드가 되지 않는다.
+// 기본 비활성인 이유는 lib/github.ts 의 getTargetRepoNames 주석 참고.
+describe("fetchAllProjects — digest 연동", () => {
+  beforeEach(() => {
+    vi.stubEnv("USE_DIGEST_TARGETS", "1");
+  });
+
+  // digest.json 은 contents API라 base64로 온다.
+  const digestResp = (digest: unknown) =>
+    contentResp(JSON.stringify(digest));
+
+  // alpha=STATUS.md 있음, beta=없음(404), gamma=STATUS.md 있음.
+  function installFetch(digest: unknown | null) {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.includes("registry/digest.json")) {
+        return digest === null ? notFound() : digestResp(digest);
+      }
+      if (url.includes("/user/repos")) return ok([{ name: "alpha" }, { name: "beta" }]);
+      if (url.includes("/alpha/contents/STATUS.md")) return contentResp(STATUS_ALPHA);
+      if (url.includes("/gamma/contents/STATUS.md")) return contentResp(STATUS_ALPHA);
+      if (url.includes("/contents/STATUS.md")) return notFound();
+      if (url.includes("/commits")) return commitsResp("2026-06-10T00:00:00Z");
+      return notFound();
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+
+  const calledUserRepos = (m: ReturnType<typeof vi.fn>) =>
+    m.mock.calls.some(([u]) => String(u).includes("/user/repos"));
+
+  it("digest가 있으면 active+cooling+stale_with_intent만 대상으로 쓰고 전체 스캔은 안 한다", async () => {
+    const fetchMock = installFetch({
+      active: [{ full_name: "tester/alpha" }],
+      cooling: [{ full_name: "tester/gamma" }],
+      stale_with_intent: [],
+      parked: [{ full_name: "tester/parked-one" }], // parked는 제외되어야 한다
+    });
+    const { fetchAllProjects } = await loadGithub();
+    const projects = await fetchAllProjects();
+
+    expect(projects.map((p) => p.repo).sort()).toEqual(["alpha", "gamma"]);
+    expect(calledUserRepos(fetchMock)).toBe(false);
+  });
+
+  it("digest에 타 owner repo가 섞이면 제외한다", async () => {
+    // URL을 `${USERNAME}/${repo}` 로 만들기 때문에 타 owner는 그대로 쓰면 깨진다.
+    installFetch({
+      active: [{ full_name: "tester/alpha" }, { full_name: "someoneelse/alpha" }],
+      cooling: [],
+      stale_with_intent: [],
+    });
+    const { fetchAllProjects } = await loadGithub();
+    const projects = await fetchAllProjects();
+    expect(projects.map((p) => p.repo)).toEqual(["alpha"]);
+  });
+
+  it("digest를 못 읽으면(404) 전체 스캔으로 폴백한다 — 대시보드가 비면 안 된다", async () => {
+    const fetchMock = installFetch(null);
+    const { fetchAllProjects } = await loadGithub();
+    const projects = await fetchAllProjects();
+
+    expect(projects.map((p) => p.repo)).toEqual(["alpha"]);
+    expect(calledUserRepos(fetchMock)).toBe(true);
+  });
+
+  it("digest는 읽히지만 대상이 0건이면 폴백한다", async () => {
+    const fetchMock = installFetch({ active: [], cooling: [], stale_with_intent: [] });
+    const { fetchAllProjects } = await loadGithub();
+    await fetchAllProjects();
+    expect(calledUserRepos(fetchMock)).toBe(true);
+  });
+
+  it("TARGET_REPOS가 digest보다 우선한다", async () => {
+    vi.stubEnv("TARGET_REPOS", "alpha");
+    const fetchMock = installFetch({
+      active: [{ full_name: "tester/gamma" }],
+      cooling: [],
+      stale_with_intent: [],
+    });
+    const { fetchAllProjects } = await loadGithub();
+    const projects = await fetchAllProjects();
+
+    expect(projects.map((p) => p.repo)).toEqual(["alpha"]); // gamma가 아니다
+    const calledDigest = fetchMock.mock.calls.some(([u]) =>
+      String(u).includes("registry/digest.json")
+    );
+    expect(calledDigest).toBe(false);
+  });
+
+  it("USE_DIGEST_TARGETS가 꺼져 있으면(기본값) digest를 아예 조회하지 않는다", async () => {
+    // 기본 동작은 종전과 같아야 한다 — 데이터 정합성이 확인되기 전까지 회귀를 막는 안전장치.
+    vi.stubEnv("USE_DIGEST_TARGETS", "");
+    const fetchMock = installFetch({
+      active: [{ full_name: "tester/gamma" }],
+      cooling: [],
+      stale_with_intent: [],
+    });
+    const { fetchAllProjects } = await loadGithub();
+    const projects = await fetchAllProjects();
+
+    expect(projects.map((p) => p.repo)).toEqual(["alpha"]); // 전체 스캔 결과
+    expect(calledUserRepos(fetchMock)).toBe(true);
+    const calledDigest = fetchMock.mock.calls.some(([u]) =>
+      String(u).includes("registry/digest.json")
+    );
+    expect(calledDigest).toBe(false);
+  });
+});

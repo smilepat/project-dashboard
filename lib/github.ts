@@ -63,19 +63,11 @@ async function gh(path: string) {
   return res.json();
 }
 
-// 대상 repo 이름 목록을 정한다.
-// .env에 TARGET_REPOS가 있으면 그것만, 없으면 토큰으로 볼 수 있는 본인 소유 repo 전체.
-async function getTargetRepoNames(): Promise<string[]> {
-  const fromEnv = sanitize(process.env.TARGET_REPOS);
-  if (fromEnv) {
-    return fromEnv
-      .split(",")
-      .map((s) => sanitize(s))
-      .filter(Boolean);
-  }
-  // 인증된 본인 컨텍스트로 호출 → private repo까지 자동 포함.
-  // affiliation=owner: 본인 소유만 (collaborator로 참여한 타 owner repo는 제외)
-  // 페이지네이션: per_page=100 한 페이지로는 100개 초과 owner는 누락 → 모든 페이지 순회.
+// 소유한 repo 전체를 훑는다(폴백 경로).
+// 인증된 본인 컨텍스트로 호출 → private repo까지 자동 포함.
+// affiliation=owner: 본인 소유만 (collaborator로 참여한 타 owner repo는 제외)
+// 페이지네이션: per_page=100 한 페이지로는 100개 초과 owner는 누락 → 모든 페이지 순회.
+async function scanAllOwnedRepoNames(): Promise<string[]> {
   const names: string[] = [];
   let page = 1;
   while (true) {
@@ -88,6 +80,60 @@ async function getTargetRepoNames(): Promise<string[]> {
     page++;
   }
   return names;
+}
+
+// digest 가 이미 내린 모멘텀 판정(active/cooling/stale_with_intent)을 대상 목록으로 쓴다.
+// 소유한 repo 전체를 카드로 띄우면 "STATUS.md가 있다"는 이유만으로 76장이 상시 표시되고,
+// 그중 대부분이 방치 상태라 신호등이 항상 빨강 → 경고가 배경이 된다.
+// digest 는 매일 갱신되므로 카드 수가 사람이 정한 숫자가 아니라 자동 산출값이 된다.
+// parked(장기 보류)는 제외한다. 특정 repo를 반드시 보고 싶으면 TARGET_REPOS 로 덮어쓴다.
+async function getDigestRepoNames(): Promise<string[] | null> {
+  try {
+    const d = await fetchDigest();
+    const picked = [
+      ...(d.active ?? []),
+      ...(d.cooling ?? []),
+      ...(d.stale_with_intent ?? []),
+    ];
+    const names = picked
+      .map((r) => String(r.full_name ?? ""))
+      .filter((fn) => fn.startsWith(`${USERNAME}/`)) // 타 owner(Reasonofmoon 등)는 URL이 안 맞으므로 제외
+      .map((fn) => fn.slice(USERNAME.length + 1))
+      .filter(Boolean);
+    // digest 는 있는데 대상이 0건이면 잘못 연동된 것 → 빈 대시보드 대신 폴백.
+    return names.length ? Array.from(new Set(names)) : null;
+  } catch {
+    // digest 를 못 읽는 상황(파일 없음·rate limit·워크플로 미실행)에서
+    // 대시보드가 통째로 비면 안 되므로 전체 스캔으로 되돌아간다.
+    return null;
+  }
+}
+
+// 대상 repo 이름 목록을 정한다. 우선순위:
+//   1) TARGET_REPOS 환경변수 (명시적 수동 지정)
+//   2) digest 판정 — USE_DIGEST_TARGETS=1 일 때만
+//   3) 소유 repo 전체 스캔 (기본값 / digest 실패 시 폴백)
+//
+// ⚠ digest 연동이 기본 비활성인 이유 (2026-07-30 확인):
+//   digest 의 모멘텀 분류는 registry/repos.csv 의 pushed_at 에 의존하는데,
+//   CI 스캔 토큰(SCAN_TOKEN_SMILEPAT)이 소유 repo 209개 중 48개만 열거한다.
+//   나머지 151행은 scan-repos.mjs 가 "보존"하면서 과거 pushed_at 이 그대로 얼어붙어,
+//   실제로는 어제 푸시한 repo가 몇 달 전 값으로 남아 parked 로 오분류된다.
+//   (예: instant-english 실제 2026-07-29 → csv 2026-06-04)
+//   이 상태에서 켜면 카드가 76 → 10장으로 줄면서 "작업 중인 repo"가 사라진다.
+//   토큰을 All repositories 로 재발급해 데이터가 맞는지 확인한 뒤 켤 것.
+async function getTargetRepoNames(): Promise<string[]> {
+  const fromEnv = sanitize(process.env.TARGET_REPOS);
+  if (fromEnv) {
+    return fromEnv
+      .split(",")
+      .map((s) => sanitize(s))
+      .filter(Boolean);
+  }
+  if (sanitize(process.env.USE_DIGEST_TARGETS) === "1") {
+    return (await getDigestRepoNames()) ?? (await scanAllOwnedRepoNames());
+  }
+  return await scanAllOwnedRepoNames();
 }
 
 // repo 하나의 STATUS.md 내용을 가져온다. 파일이 없으면(404) null.
