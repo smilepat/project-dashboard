@@ -48,6 +48,13 @@ DENY_PATTERNS = [
     r"^push-diary$",  # 일지 저장소(프로젝트 아님)
     r"^dev-workflow$",  # 멀티 PC 작업 지침 문서(앱 아님)
     r"^lumina-bridge",  # 발표 슬라이드 덱(앱 아님)
+    # 2026-07-31 유실 위험 정리 때 만든 백업 전용 repo. 로컬에만 있던 유일본을
+    # GitHub에 올려둔 것이라 "진행 중인 프로젝트"가 아니다. 스윕이 stub을 만들면
+    # 대시보드 카드로 잡혀 실제 작업 중인 앱을 가린다.
+    r"^0_ET_Craft$",
+    r"^AI_TESOL_App$",
+    r"^dev-scripts$",
+    r"^word-family-scale-classifier$",
 ]
 
 if not TOKEN:
