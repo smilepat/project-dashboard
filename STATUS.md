@@ -2,7 +2,7 @@
 project: project-dashboard
 status: active
 progress: 99
-updated: 2026-07-21
+updated: 2026-08-05
 pc: DESKTOP-JDF6C5D
 ---
 
@@ -10,7 +10,26 @@ pc: DESKTOP-JDF6C5D
 
 ## 🎯 한 줄 상태
 
-대시보드 production 작동 + PWA + 보안 완료. 2026-07-21: "새 앱이 대시보드에 안 뜬다" 문제 해결 — TARGET_REPOS 고정 목록 제거(자동 스캔 복구)·활성 repo에 STATUS.md 일괄 생성(9→67장)·주간 자동 스윕(scripts/sweep-status.py + status-sweep.yml) 구축. 카드 9 → **67장**.
+대시보드 production 작동 + PWA + 보안 완료. 2026-07-21 에 자동 스캔을 복구해 카드가 9→67장이 됐고(현재 76장), 2026-08-03 에는 반대로 **카드를 19장으로 좁히는 digest 연동**을 붙였다. 코드·테스트(31개) 완료, **`vercel login` 대기로 아직 OFF**.
+
+## 🆕 2026-08-03 digest 연동 (코드 완료 · 기본 OFF)
+
+카드가 76장이면 대부분이 상시 빨강이라 경고가 배경이 된다. `repo-ops-system` 의
+`registry/digest.json` 모멘텀 판정(`active` = 7일 내 push)으로 대상을 좁혀 **19장**으로.
+
+- [x] `lib/github.ts` — 우선순위 `TARGET_REPOS` → (`USE_DIGEST_TARGETS=1`) digest → 전체 스캔.
+      digest 실패·대상 0건이면 **전체 스캔 폴백**(대시보드가 통째로 비면 안 됨)
+- [x] `DIGEST_BUCKETS` 로 구간 확장 가능(기본 `active`). 유효값 0개면 `active` 로 되돌림
+- [x] 테스트 8개 추가 → **총 31개 통과**, tsc 통과
+- [ ] **`vercel login` → `USE_DIGEST_TARGETS=1` 등록 → 재배포** ← 남은 유일한 단계
+
+**구간별 실측(2026-08-03):** 전체 76장 / `active` **19장** / +cooling 59 / +stale 65.
+cooling 43건 중 40건이 STATUS.md 를 갖고 있어 cooling 을 넣으면 축소 효과가 사라진다.
+
+> ⚠️ **하마터면 잘못 켤 뻔한 건**: 처음 계산했을 때 digest 는 "18장"이라 했는데, 그건
+> CI 스캔 토큰이 209개 중 48개(public만)만 보던 탓에 나온 착시였다. 그대로 켰다면
+> 이틀 전 푸시한 `instant-english`·`EBS-demo` 가 사라졌을 것이다.
+> 토큰을 고친 뒤(Contents/Issues/Pull requests = Read-only) 재측정한 값이 위의 19장이다.
 
 ## 🆕 2026-07-21 "새 앱 자동 추적" 작업 (완료)
 
@@ -72,9 +91,12 @@ pc: DESKTOP-JDF6C5D
 
 ## ⏭️ 다음에 할 일 (Next Actions)
 
-- 유지보수 단계 — 별도 예정 작업 없음. 신규 프로젝트는 글로벌 규칙 + 주간 스윕이 STATUS.md를 자동 관리.
-- (선택) 자동 생성분 STATUS.md는 progress:0(stale 카드) → 각 repo 작업 시 실제 내용으로 채우면 정상화.
-- (주의) 대시보드 반영은 반드시 **master push**(fresh 빌드). `vercel redeploy`는 낡은 빌드를 재사용하므로 변경이 안 보임.
+1. **`vercel login`** → Vercel 환경변수 `USE_DIGEST_TARGETS=1` 추가(All Environments) → **master push 로 재배포**.
+   카드 76 → 19장. 이상하면 환경변수만 지우면 즉시 원복된다.
+2. (선택) 카드가 너무 적다 싶으면 `DIGEST_BUCKETS=active,cooling` 로 59장.
+3. **빈 stub 49개 처리** — STATUS.md 보유 77개 중 49개가 progress 0 의 미작성 stub이다.
+   카드가 있어도 내용이 없으면 신호가 되지 않는다. 채우거나 걷어낼 것.
+4. (주의) 반영은 반드시 **master push**(fresh 빌드). `vercel redeploy` 는 낡은 빌드를 재사용해 변경이 안 보인다.
 
 ## ✅ 결정 완료 (2026-06-13)
 
@@ -83,4 +105,4 @@ pc: DESKTOP-JDF6C5D
 
 ## 🔗 Claude Code 재개 프롬프트
 
-"STATUS.md 읽고 진행 상황 파악. 대시보드는 유지보수 단계 — 코드/결정 모두 종료. 신규 프로젝트는 글로벌 규칙이 STATUS.md를 자동 관리."
+"project-dashboard STATUS.md 읽고, vercel login 후 USE_DIGEST_TARGETS=1 등록해서 카드 19장으로 줄이자"
