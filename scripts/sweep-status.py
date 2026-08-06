@@ -193,7 +193,15 @@ def list_repos():
     return out
 
 
-def stub(repo, desc, today, pc="github-actions"):
+# pc 는 "이 프로젝트를 마지막으로 만진 PC"를 가리키는 join key 다.
+# registry/machines/<hostname>.json (PC 가 무엇을 갖고 있나) 과 이어 붙여
+# "이 프로젝트를 만진 PC 에 미저장 작업이 있나"를 기계가 답하게 하는 것이 목적이다.
+#
+# 그래서 스윕은 여기에 값을 넣으면 안 된다. 예전 기본값 "github-actions" 는
+# 사람이 그 PC 에서 작업했다는 거짓 주장이 되고, hostname 이 아니라서 어느
+# machines/*.json 과도 매칭되지 않는다(실측 2026-08-06: 73개 중 16개가 이 값).
+# 빈 값이면 "아직 아무도 안 만졌다"가 정직하게 드러난다.
+def stub(repo, desc, today, pc=""):
     headline = (desc or "").strip() or "(설명 없음 — 실제 진행 상황을 확인해 채워 넣을 것)"
     return f"""---
 project: {repo}
