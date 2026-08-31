@@ -2,8 +2,8 @@
 project: project-dashboard
 status: active
 progress: 99
-updated: 2026-08-05
-pc: DESKTOP-JDF6C5D
+updated: 2026-08-31
+pc: claude-cloud-vm
 ---
 
 # project-dashboard — STATUS
@@ -87,7 +87,7 @@ cooling 43건 중 40건이 STATUS.md 를 갖고 있어 cooling 을 넣으면 축
 - [x] sw.js: 인증된 비공개 화면('/' navigation)을 프리캐시·런타임 캐시에서 제외 (CACHE v1→v2). 공유 PC 캐시본 노출 방지 (2026-06-26)
 - [x] preview 페이지(/p/[repo]) 신호등 색을 메인 카드와 동일 기준(getHealth/커밋 최신성)으로 통일 → parse.ts의 getHealth/daysAgo export (2026-06-26)
 - [x] page.tsx catch (e: any) → unknown + Error 좁히기 (strict 모드 정합) (2026-06-26)
-- [ ] (모니터링) Next.js postcss 취약점(GHSA-qx2v-qp2m-jg93): 안정판 패치(16.3.0+) 미출시 → 출시 시 next 업그레이드. 빌드 도구 한정이라 런타임 위험 낮음
+- [ ] (모니터링→부분완료) Next.js postcss 취약점(GHSA-qx2v-qp2m-jg93): **16.3.3 출시 확인** → 브랜치 `chore/next-16.3.3-postcss-fix` push 완료(2026-08-31). npm registry 차단으로 원격 환경에서 test/build 미검증 → **로컬에서 `npm install && npm test && npm run build` 후 PR 머지** 필요
 
 ## ⏭️ 다음에 할 일 (Next Actions)
 
